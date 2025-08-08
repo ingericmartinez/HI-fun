@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memorama de Rick y Morty</title>
+    <!-- Carga de Tailwind CSS para estilos rápidos y responsivos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de la fuente Inter de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Color de fondo oscuro */
+            color: #e2e8f0; /* Color de texto claro */
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+
+        /* Estilos para la tarjeta */
+        .character-card {
+            position: relative;
+            background: transparent;
+            border: 3px solid transparent;
+            border-image: linear-gradient(45deg, #4CAF50, #8BC34A, #FFEB3B, #FF9800) 1;
+            padding: 0;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+            perspective: 1000px;
+            overflow: hidden;
+            cursor: pointer;
+            height: 200px; /* Altura más pequeña para el memorama */
+            width: 150px; /* Ancho más pequeño para el memorama */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .character-card:hover {
+            transform: scale(1.05); /* Solo escala en memorama para evitar complejidad 3D en el juego */
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.8);
+        }
+       
+        /* Efecto metálico/holográfico */
+        .character-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.3) 0%,
+                rgba(255, 255, 255, 0.1) 25%,
+                rgba(255, 255, 255, 0.4) 50%,
+                rgba(255, 255, 255, 0.1) 75%,
+                rgba(255, 255, 255, 0.3) 100%
+            );
+            background-size: 200% 200%;
+            opacity: 0;
+            transition: opacity 0.3s ease-out, background-position 0.6s ease-out;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+            border-radius: 1rem;
+        }
+
+        .character-card:hover::before {
+            opacity: 1;
+            background-position: -100% -100%;
+        }
+
+        /* Contenedor interno para el volteo */
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            border-radius: 1rem;
+            /* Por defecto, muestra la parte trasera (logo) */
+            transform: rotateY(180deg);
+        }
+
+        /* Estado "volteado" de la tarjeta (muestra el frente del personaje) */
+        .character-card.flipped .card-inner {
+            transform: rotateY(0deg); /* Gira para mostrar el frente */
+        }
+
+        /* Frente y reverso de la tarjeta */
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            background: linear-gradient(145deg, #2d3748, #1a202c);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-back {
+            transform: rotateY(180deg); /* La parte trasera empieza rotada para que el frente sea el logo */
+            background: linear-gradient(145deg, #374151, #2d3748); /* Fondo del reverso */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Contenido del reverso (logo de Rick y Morty) */
+        .card-back-content {
+            width: 80%;
+            height: 80%;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Rick_and_Morty.svg/1200px-Rick_and_Morty.svg.png'); /* Logo de Rick y Morty */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.7;
+        }
+
+        .character-image-frame {
+            border: 2px solid #68d391;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            width: 100px; /* Tamaño de imagen más pequeño */
+            height: 100px;
+            margin-bottom: 0.5rem;
+        }
+
+        .character-card.flipped .character-image-frame {
+            transform: none; /* No mover la imagen al voltear para memorama */
+        }
+
+        .card-front h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* Mensajes del juego */
+        .game-message {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        .message-success {
+            background-color: #48bb78; /* Verde */
+            color: white;
+        }
+        .message-failure {
+            background-color: #ef4444; /* Rojo */
+            color: white;
+        }
+        .message-info {
+            background-color: #4299e1; /* Azul */
+            color: white;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-4">
+    <!-- Contenedor principal de la aplicación -->
+    <div class="w-full max-w-6xl bg-gray-800 rounded-xl shadow-lg p-6 lg:p-8">
+        <h1 class="text-4xl lg:text-5xl font-extrabold text-center text-green-400 mb-6">
+            Memorama de Rick y Morty
+        </h1>
+
+        <!-- Controles y estadísticas del juego -->
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6">
+            <button id="new-game-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors duration-300">
+                Nuevo Juego
+            </button>
+            <div class="text-xl font-semibold text-gray-300">
+                Intentos: <span id="attempts-count" class="text-yellow-400">0</span>
+            </div>
+        </div>
+
+        <!-- Mensaje de carga -->
+        <div id="loading-message" class="text-center text-xl text-blue-400 mb-4 animate-pulse">
+            Cargando personajes...
+        </div>
+
+        <!-- Mensajes del juego (éxito/falla) -->
+        <div id="game-feedback-message" class="game-message hidden"></div>
+
+        <!-- Contenedor para la cuadrícula de personajes -->
+        <div id="characters-container" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 justify-items-center">
+            <!-- Las tarjetas se cargarán aquí dinámicamente con JavaScript -->
+        </div>
+
+        <!-- Mensaje de error (oculto por defecto) -->
+        <div id="error-message" class="hidden text-center text-xl text-red-500 mt-8">
+            ¡Oops! Hubo un error al cargar los personajes. Por favor, inténtalo de nuevo más tarde.
+        </div>
+    </div>
+
+    <script>
+        // URL de la API de Rick y Morty para obtener personajes
+        const API_URL = 'https://rickandmortyapi.com/api/character';
+        const NUM_PAIRS = 10; // Número de pares de personajes (total de tarjetas = NUM_PAIRS * 2)
+
+        // Referencias a elementos del DOM
+        const loadingMessage = document.getElementById('loading-message');
+        const charactersContainer = document.getElementById('characters-container');
+        const errorMessage = document.getElementById('error-message');
+        const newGameButton = document.getElementById('new-game-button');
+        const attemptsCountSpan = document.getElementById('attempts-count');
+        const gameFeedbackMessage = document.getElementById('game-feedback-message');
+
+        // Variables del estado del juego
+        let gameCards = []; // Array de objetos de tarjeta para el juego
+        let flippedCards = []; // Tarjetas actualmente volteadas (máximo 2)
+        let matchedPairs = 0; // Contador de pares encontrados
+        let attempts = 0; // Contador de intentos
+        let lockBoard = false; // Bloquea el tablero durante la comparación de tarjetas
+
+        /**
+         * Inicializa un nuevo juego de memorama.
+         */
+        async function initGame() {
+            loadingMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            charactersContainer.innerHTML = ''; // Limpiar tablero
+            gameFeedbackMessage.classList.add('hidden'); // Ocultar mensajes de feedback
+            gameFeedbackMessage.textContent = '';
+
+            flippedCards = [];
+            matchedPairs = 0;
+            attempts = 0;
+            attemptsCountSpan.textContent = attempts;
+            lockBoard = false;
+
+            try {
+                // Obtener personajes de la API (suficientes para NUM_PAIRS)
+                // Se hace una petición por página para obtener más personajes si es necesario
+                const response = await fetch(\`${API_URL}?page=${Math.ceil(NUM_PAIRS / 20) + 1}\`); // Ajuste para obtener suficientes personajes
+                if (!response.ok) {
+                    throw new Error(\`Error HTTP: ${response.status}\`);
+                }
+                const data = await response.json();
+                let characters = data.results;
+
+                // Si no hay suficientes personajes en la primera página, intentar con más páginas o limitar
+                if (characters.length < NUM_PAIRS) {
+                    // Simplemente tomamos los que tenemos y los duplicamos hasta NUM_PAIRS
+                    // En un juego real, se harían más peticiones o se manejaría mejor
+                    console.warn("No hay suficientes personajes para crear todos los pares. Usando los disponibles.");
+                }
+                characters = characters.slice(0, NUM_PAIRS); // Tomar solo los necesarios para los pares
+
+                // Duplicar personajes para crear pares
+                gameCards = [];
+                characters.forEach(char => {
+                    gameCards.push({ id: char.id, name: char.name, image: char.image, uniqueId: Math.random() });
+                    gameCards.push({ id: char.id, name: char.name, image: char.image, uniqueId: Math.random() }); // uniqueId para diferenciar instancias
+                });
+
+                // Mezclar las tarjetas
+                shuffleArray(gameCards);
+
+                // Renderizar las tarjetas en el DOM
+                gameCards.forEach(cardData => {
+                    createCardElement(cardData);
+                });
+
+            } catch (error) {
+                console.error('Error al inicializar el juego:', error);
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loadingMessage.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Función para mezclar un array (algoritmo Fisher-Yates).
+         * @param {Array} array - El array a mezclar.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Intercambiar elementos
+            }
+        }
+
+        /**
+         * Crea un elemento de tarjeta HTML para el juego.
+         * @param {Object} cardData - Datos del personaje para la tarjeta.
+         */
+        function createCardElement(cardData) {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            card.dataset.characterId = cardData.id; // ID del personaje para la coincidencia
+            card.dataset.uniqueId = cardData.uniqueId; // ID único para la instancia de la tarjeta
+
+            const cardInner = document.createElement('div');
+            cardInner.className = 'card-inner'; // Esta clase ahora tiene el transform: rotateY(180deg) por defecto
+
+            // Parte Frontal (Personaje)
+            const cardFront = document.createElement('div');
+            cardFront.className = 'card-front';
+            const imageFrame = document.createElement('div');
+            imageFrame.className = 'character-image-frame';
+            const img = document.createElement('img');
+            img.src = cardData.image;
+            img.alt = cardData.name;
+            img.className = 'w-full h-full object-cover rounded-md';
+            img.onerror = function() {
+                this.onerror=null;
+                this.src='https://placehold.co/100x100/374151/ffffff?text=No+Image';
+            };
+            imageFrame.appendChild(img);
+            const name = document.createElement('h2');
+            name.textContent = cardData.name;
+            cardFront.appendChild(imageFrame);
+            cardFront.appendChild(name);
+
+            // Parte Trasera (Logo del juego)
+            const cardBack = document.createElement('div');
+            cardBack.className = 'card-back';
+            const backContent = document.createElement('div');
+            backContent.className = 'card-back-content';
+            cardBack.appendChild(backContent);
+
+            cardInner.appendChild(cardFront);
+            cardInner.appendChild(cardBack);
+            card.appendChild(cardInner);
+
+            // Evento de clic para voltear la tarjeta
+            card.addEventListener('click', () => handleCardClick(card));
+            charactersContainer.appendChild(card);
+        }
+
+        /**
+         * Maneja el clic en una tarjeta.
+         * @param {HTMLElement} clickedCard - El elemento HTML de la tarjeta clickeada.
+         */
+        function handleCardClick(clickedCard) {
+            // No hacer nada si el tablero está bloqueado, la tarjeta ya está volteada o ya está emparejada
+            if (lockBoard || clickedCard.classList.contains('flipped') || clickedCard.classList.contains('matched')) {
+                return;
+            }
+
+            // Voltear la tarjeta para mostrar el frente
+            clickedCard.classList.add('flipped');
+            flippedCards.push(clickedCard);
+
+            if (flippedCards.length === 2) {
+                attempts++;
+                attemptsCountSpan.textContent = attempts;
+                lockBoard = true; // Bloquear el tablero
+                checkForMatch();
+            }
+        }
+
+        /**
+         * Comprueba si las dos tarjetas volteadas coinciden.
+         */
+        function checkForMatch() {
+            const [firstCard, secondCard] = flippedCards;
+            const isMatch = firstCard.dataset.characterId === secondCard.dataset.characterId;
+
+            if (isMatch) {
+                displayFeedback("¡Coincidencia!", "success");
+                disableCards();
+            } else {
+                displayFeedback("¡Inténtalo de nuevo!", "failure");
+                unflipCards();
+            }
+        }
+
+        /**
+         * Mantiene las tarjetas emparejadas volteadas y desactiva sus eventos de clic.
+         */
+        function disableCards() {
+            flippedCards.forEach(card => {
+                card.removeEventListener('click', () => handleCardClick(card));
+                card.classList.add('matched'); // Marca como emparejada
+            });
+            matchedPairs++;
+            resetBoard();
+            checkWin();
+        }
+
+        /**
+         * Voltea las tarjetas no coincidentes después de un breve retraso.
+         */
+        function unflipCards() {
+            setTimeout(() => {
+                // Voltear las tarjetas de nuevo al reverso (logo)
+                flippedCards.forEach(card => card.classList.remove('flipped'));
+                resetBoard();
+                displayFeedback("", "info", true); // Limpiar mensaje de feedback
+            }, 1000); // Esperar 1 segundo antes de voltear
+        }
+
+        /**
+         * Restablece las variables de las tarjetas volteadas y desbloquea el tablero.
+         */
+        function resetBoard() {
+            [flippedCards] = [[], []]; // Vaciar array de tarjetas volteadas
+            lockBoard = false;
+        }
+
+        /**
+         * Muestra un mensaje de retroalimentación en la interfaz.
+         * @param {string} message - El mensaje a mostrar.
+         * @param {string} type - Tipo de mensaje ('success', 'failure', 'info').
+         * @param {boolean} hide - Si el mensaje debe ocultarse.
+         */
+        function displayFeedback(message, type, hide = false) {
+            gameFeedbackMessage.textContent = message;
+            gameFeedbackMessage.classList.remove('hidden', 'message-success', 'message-failure', 'message-info');
+            if (hide) {
+                gameFeedbackMessage.classList.add('hidden');
+            } else {
+                gameFeedbackMessage.classList.add(\`message-${type}\`);
+            }
+        }
+
+        /**
+         * Comprueba si el juego ha terminado.
+         */
+        function checkWin() {
+            if (matchedPairs === NUM_PAIRS) {
+                displayFeedback(\`¡Felicidades! Has completado el memorama en ${attempts} intentos.\`, "success");
+            }
+        }
+
+        // Event listener para el botón de nuevo juego
+        newGameButton.addEventListener('click', initGame);
+
+        // Iniciar el juego cuando la página cargue
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memorama de Rick y Morty</title>
+    <!-- Carga de Tailwind CSS para estilos rápidos y responsivos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de la fuente Inter de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Color de fondo oscuro */
+            color: #e2e8f0; /* Color de texto claro */
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+
+        /* Estilos para la tarjeta */
+        .character-card {
+            position: relative;
+            background: transparent;
+            border: 3px solid transparent;
+            border-image: linear-gradient(45deg, #4CAF50, #8BC34A, #FFEB3B, #FF9800) 1;
+            padding: 0;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+            perspective: 1000px;
+            overflow: hidden;
+            cursor: pointer;
+            height: 200px; /* Altura más pequeña para el memorama */
+            width: 150px; /* Ancho más pequeño para el memorama */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .character-card:hover {
+            transform: scale(1.05); /* Solo escala en memorama para evitar complejidad 3D en el juego */
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.8);
+        }
+       
+        /* Efecto metálico/holográfico */
+        .character-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.3) 0%,
+                rgba(255, 255, 255, 0.1) 25%,
+                rgba(255, 255, 255, 0.4) 50%,
+                rgba(255, 255, 255, 0.1) 75%,
+                rgba(255, 255, 255, 0.3) 100%
+            );
+            background-size: 200% 200%;
+            opacity: 0;
+            transition: opacity 0.3s ease-out, background-position 0.6s ease-out;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+            border-radius: 1rem;
+        }
+
+        .character-card:hover::before {
+            opacity: 1;
+            background-position: -100% -100%;
+        }
+
+        /* Contenedor interno para el volteo */
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            border-radius: 1rem;
+            /* Por defecto, muestra la parte trasera (logo) */
+            transform: rotateY(180deg);
+        }
+
+        /* Estado "volteado" de la tarjeta (muestra el frente del personaje) */
+        .character-card.flipped .card-inner {
+            transform: rotateY(0deg); /* Gira para mostrar el frente */
+        }
+
+        /* Frente y reverso de la tarjeta */
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            background: linear-gradient(145deg, #2d3748, #1a202c);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-back {
+            transform: rotateY(180deg); /* La parte trasera empieza rotada para que el frente sea el logo */
+            background: linear-gradient(145deg, #374151, #2d3748); /* Fondo del reverso */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Contenido del reverso (logo de Rick y Morty) */
+        .card-back-content {
+            width: 80%;
+            height: 80%;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Rick_and_Morty.svg/1200px-Rick_and_Morty.svg.png'); /* Logo de Rick y Morty */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.7;
+        }
+
+        .character-image-frame {
+            border: 2px solid #68d391;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            width: 100px; /* Tamaño de imagen más pequeño */
+            height: 100px;
+            margin-bottom: 0.5rem;
+        }
+
+        .character-card.flipped .character-image-frame {
+            transform: none; /* No mover la imagen al voltear para memorama */
+        }
+
+        .card-front h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* Mensajes del juego */
+        .game-message {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        .message-success {
+            background-color: #48bb78; /* Verde */
+            color: white;
+        }
+        .message-failure {
+            background-color: #ef4444; /* Rojo */
+            color: white;
+        }
+        .message-info {
+            background-color: #4299e1; /* Azul */
+            color: white;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-4">
+    <!-- Contenedor principal de la aplicación -->
+    <div class="w-full max-w-6xl bg-gray-800 rounded-xl shadow-lg p-6 lg:p-8">
+        <h1 class="text-4xl lg:text-5xl font-extrabold text-center text-green-400 mb-6">
+            Memorama de Rick y Morty
+        </h1>
+
+        <!-- Controles y estadísticas del juego -->
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6">
+            <button id="new-game-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors duration-300">
+                Nuevo Juego
+            </button>
+            <div class="text-xl font-semibold text-gray-300">
+                Intentos: <span id="attempts-count" class="text-yellow-400">0</span>
+            </div>
+        </div>
+
+        <!-- Mensaje de carga -->
+        <div id="loading-message" class="text-center text-xl text-blue-400 mb-4 animate-pulse">
+            Cargando personajes...
+        </div>
+
+        <!-- Mensajes del juego (éxito/falla) -->
+        <div id="game-feedback-message" class="game-message hidden"></div>
+
+        <!-- Contenedor para la cuadrícula de personajes -->
+        <div id="characters-container" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 justify-items-center">
+            <!-- Las tarjetas se cargarán aquí dinámicamente con JavaScript -->
+        </div>
+
+        <!-- Mensaje de error (oculto por defecto) -->
+        <div id="error-message" class="hidden text-center text-xl text-red-500 mt-8">
+            ¡Oops! Hubo un error al cargar los personajes. Por favor, inténtalo de nuevo más tarde.
+        </div>
+    </div>
+
+    <script>
+        // URL de la API de Rick y Morty para obtener personajes
+        const API_URL = 'https://rickandmortyapi.com/api/character';
+        const NUM_PAIRS = 10; // Número de pares de personajes (total de tarjetas = NUM_PAIRS * 2)
+
+        // Referencias a elementos del DOM
+        const loadingMessage = document.getElementById('loading-message');
+        const charactersContainer = document.getElementById('characters-container');
+        const errorMessage = document.getElementById('error-message');
+        const newGameButton = document.getElementById('new-game-button');
+        const attemptsCountSpan = document.getElementById('attempts-count');
+        const gameFeedbackMessage = document.getElementById('game-feedback-message');
+
+        // Variables del estado del juego
+        let gameCards = []; // Array de objetos de tarjeta para el juego
+        let flippedCards = []; // Tarjetas actualmente volteadas (máximo 2)
+        let matchedPairs = 0; // Contador de pares encontrados
+        let attempts = 0; // Contador de intentos
+        let lockBoard = false; // Bloquea el tablero durante la comparación de tarjetas
+
+        /**
+         * Inicializa un nuevo juego de memorama.
+         */
+        async function initGame() {
+            loadingMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            charactersContainer.innerHTML = ''; // Limpiar tablero
+            gameFeedbackMessage.classList.add('hidden'); // Ocultar mensajes de feedback
+            gameFeedbackMessage.textContent = '';
+
+            flippedCards = [];
+            matchedPairs = 0;
+            attempts = 0;
+            attemptsCountSpan.textContent = attempts;
+            lockBoard = false;
+
+            try {
+                // Obtener personajes de la API (suficientes para NUM_PAIRS)
+                // Se hace una petición por página para obtener más personajes si es necesario
+                const response = await fetch(\`${API_URL}?page=${Math.ceil(NUM_PAIRS / 20) + 1}\`); // Ajuste para obtener suficientes personajes
+                if (!response.ok) {
+                    throw new Error(\`Error HTTP: ${response.status}\`);
+                }
+                const data = await response.json();
+                let characters = data.results;
+
+                // Si no hay suficientes personajes en la primera página, intentar con más páginas o limitar
+                if (characters.length < NUM_PAIRS) {
+                    // Simplemente tomamos los que tenemos y los duplicamos hasta NUM_PAIRS
+                    // En un juego real, se harían más peticiones o se manejaría mejor
+                    console.warn("No hay suficientes personajes para crear todos los pares. Usando los disponibles.");
+                }
+                characters = characters.slice(0, NUM_PAIRS); // Tomar solo los necesarios para los pares
+
+                // Duplicar personajes para crear pares
+                gameCards = [];
+                characters.forEach(char => {
+                    gameCards.push({ id: char.id, name: char.name, image: char.image, uniqueId: Math.random() });
+                    gameCards.push({ id: char.id, name: char.name, image: char.image, uniqueId: Math.random() }); // uniqueId para diferenciar instancias
+                });
+
+                // Mezclar las tarjetas
+                shuffleArray(gameCards);
+
+                // Renderizar las tarjetas en el DOM
+                gameCards.forEach(cardData => {
+                    createCardElement(cardData);
+                });
+
+            } catch (error) {
+                console.error('Error al inicializar el juego:', error);
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loadingMessage.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Función para mezclar un array (algoritmo Fisher-Yates).
+         * @param {Array} array - El array a mezclar.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Intercambiar elementos
+            }
+        }
+
+        /**
+         * Crea un elemento de tarjeta HTML para el juego.
+         * @param {Object} cardData - Datos del personaje para la tarjeta.
+         */
+        function createCardElement(cardData) {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            card.dataset.characterId = cardData.id; // ID del personaje para la coincidencia
+            card.dataset.uniqueId = cardData.uniqueId; // ID único para la instancia de la tarjeta
+
+            const cardInner = document.createElement('div');
+            cardInner.className = 'card-inner'; // Esta clase ahora tiene el transform: rotateY(180deg) por defecto
+
+            // Parte Frontal (Personaje)
+            const cardFront = document.createElement('div');
+            cardFront.className = 'card-front';
+            const imageFrame = document.createElement('div');
+            imageFrame.className = 'character-image-frame';
+            const img = document.createElement('img');
+            img.src = cardData.image;
+            img.alt = cardData.name;
+            img.className = 'w-full h-full object-cover rounded-md';
+            img.onerror = function() {
+                this.onerror=null;
+                this.src='https://placehold.co/100x100/374151/ffffff?text=No+Image';
+            };
+            imageFrame.appendChild(img);
+            const name = document.createElement('h2');
+            name.textContent = cardData.name;
+            cardFront.appendChild(imageFrame);
+            cardFront.appendChild(name);
+
+            // Parte Trasera (Logo del juego)
+            const cardBack = document.createElement('div');
+            cardBack.className = 'card-back';
+            const backContent = document.createElement('div');
+            backContent.className = 'card-back-content';
+            cardBack.appendChild(backContent);
+
+            cardInner.appendChild(cardFront);
+            cardInner.appendChild(cardBack);
+            card.appendChild(cardInner);
+
+            // Evento de clic para voltear la tarjeta
+            card.addEventListener('click', () => handleCardClick(card));
+            charactersContainer.appendChild(card);
+        }
+
+        /**
+         * Maneja el clic en una tarjeta.
+         * @param {HTMLElement} clickedCard - El elemento HTML de la tarjeta clickeada.
+         */
+        function handleCardClick(clickedCard) {
+            // No hacer nada si el tablero está bloqueado, la tarjeta ya está volteada o ya está emparejada
+            if (lockBoard || clickedCard.classList.contains('flipped') || clickedCard.classList.contains('matched')) {
+                return;
+            }
+
+            // Voltear la tarjeta para mostrar el frente
+            clickedCard.classList.add('flipped');
+            flippedCards.push(clickedCard);
+
+            if (flippedCards.length === 2) {
+                attempts++;
+                attemptsCountSpan.textContent = attempts;
+                lockBoard = true; // Bloquear el tablero
+                checkForMatch();
+            }
+        }
+
+        /**
+         * Comprueba si las dos tarjetas volteadas coinciden.
+         */
+        function checkForMatch() {
+            const [firstCard, secondCard] = flippedCards;
+            const isMatch = firstCard.dataset.characterId === secondCard.dataset.characterId;
+
+            if (isMatch) {
+                displayFeedback("¡Coincidencia!", "success");
+                disableCards();
+            } else {
+                displayFeedback("¡Inténtalo de nuevo!", "failure");
+                unflipCards();
+            }
+        }
+
+        /**
+         * Mantiene las tarjetas emparejadas volteadas y desactiva sus eventos de clic.
+         */
+        function disableCards() {
+            flippedCards.forEach(card => {
+                card.removeEventListener('click', () => handleCardClick(card));
+                card.classList.add('matched'); // Marca como emparejada
+            });
+            matchedPairs++;
+            resetBoard();
+            checkWin();
+        }
+
+        /**
+         * Voltea las tarjetas no coincidentes después de un breve retraso.
+         */
+        function unflipCards() {
+            setTimeout(() => {
+                // Voltear las tarjetas de nuevo al reverso (logo)
+                flippedCards.forEach(card => card.classList.remove('flipped'));
+                resetBoard();
+                displayFeedback("", "info", true); // Limpiar mensaje de feedback
+            }, 1000); // Esperar 1 segundo antes de voltear
+        }
+
+        /**
+         * Restablece las variables de las tarjetas volteadas y desbloquea el tablero.
+         */
+        function resetBoard() {
+            [flippedCards] = [[], []]; // Vaciar array de tarjetas volteadas
+            lockBoard = false;
+        }
+
+        /**
+         * Muestra un mensaje de retroalimentación en la interfaz.
+         * @param {string} message - El mensaje a mostrar.
+         * @param {string} type - Tipo de mensaje ('success', 'failure', 'info').
+         * @param {boolean} hide - Si el mensaje debe ocultarse.
+         */
+        function displayFeedback(message, type, hide = false) {
+            gameFeedbackMessage.textContent = message;
+            gameFeedbackMessage.classList.remove('hidden', 'message-success', 'message-failure', 'message-info');
+            if (hide) {
+                gameFeedbackMessage.classList.add('hidden');
+            } else {
+                gameFeedbackMessage.classList.add(\`message-${type}\`);
+            }
+        }
+
+        /**
+         * Comprueba si el juego ha terminado.
+         */
+        function checkWin() {
+            if (matchedPairs === NUM_PAIRS) {
+                displayFeedback(\`¡Felicidades! Has completado el memorama en ${attempts} intentos.\`, "success");
+            }
+        }
+
+        // Event listener para el botón de nuevo juego
+        newGameButton.addEventListener('click', initGame);
+
+        // Iniciar el juego cuando la página cargue
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
