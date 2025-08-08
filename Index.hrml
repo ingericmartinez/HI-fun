@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HI fun - Centro de Juegos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-bg: #111827;
+            --medium-bg: #1F2937;
+            --light-bg: #374151;
+            --text-light: #F3F4F6;
+            --accent-blue: #3b82f6;
+            --accent-amber: #FBBF24;
+            --accent-green: #34D399;
+            --type-normal: #A8A77A; --type-fire: #EE8130; --type-water: #6390F0; --type-electric: #F7D02C; --type-grass: #7AC74C; --type-ice: #96D9D6; --type-fighting: #C22E28; --type-poison: #A33EA1; --type-ground: #E2BF65; --type-flying: #A98FF3; --type-psychic: #F95587; --type-bug: #A6B91A; --type-rock: #B6A136; --type-ghost: #735797; --type-dragon: #6F35FC; --type-dark: #705746; --type-steel: #B7B7CE; --type-fairy: #D685AD;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+        }
+        .tab-button.active {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+        /* --- Tic-Tac-Toe Styles --- */
+        .tictactoe-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            max-width: 300px;
+            margin: auto;
+        }
+        .cell {
+            width: 100%;
+            padding-bottom: 100%;
+            position: relative;
+            background-color: var(--light-bg);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .cell:hover:not(.x):not(.o) { background-color: #4B5563; }
+        .cell span {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem; font-weight: bold;
+            user-select: none;
+        }
+        .cell.x span { color: #60A5FA; }
+        .cell.o span { color: var(--accent-amber); }
+
+        /* --- Memorama Styles --- */
+        .memorama-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            max-width: 400px;
+            margin: auto;
+            perspective: 1000px;
+        }
+        .memo-card {
+            width: 100%; padding-bottom: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+        .memo-card.flipped, .memo-card.matched { transform: rotateY(180deg); }
+        .memo-card .card-face {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            backface-visibility: hidden;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 0.5rem;
+        }
+        .card-back {
+            background-color: var(--light-bg);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239CA3AF' fill-opacity='0.1'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.4l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        .card-front { background-color: #4B5563; transform: rotateY(180deg); }
+        .card-front img { max-width: 80%; max-height: 80%; image-rendering: pixelated; }
+
+        /* --- Pokédex Styles --- */
+        .pokedex-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+        .pokemon-card {
+            background-color: var(--light-bg);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .pokemon-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+        .pokemon-card img { width: 96px; height: 96px; margin: 0 auto; image-rendering: pixelated; }
+        .pokemon-card p { text-transform: capitalize; margin-top: 0.5rem; font-weight: 600; }
+
+        /* --- Modal Styles --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: var(--medium-bg);
+            padding: 1.5rem; border-radius: 0.75rem;
+            transform: scale(0.9); transition: transform 0.3s;
+            max-width: 90vw; width: 420px;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .type-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; color: white; font-weight: bold; text-transform: uppercase; font-size: 0.75rem; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 sm:p-8">
+
+    <header class="text-center mb-8">
+        <h1 class="text-4xl sm:text-5xl font-bold text-white tracking-tight">
+            <span class="text-blue-400">HI</span> fun
+        </h1>
+        <p class="text-gray-400 mt-2">Tu centro de mini-juegos</p>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="mb-8 flex flex-wrap justify-center gap-2 bg-gray-800 p-2 rounded-xl">
+        <button data-tab="tictactoe" class="tab-button active px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg font-semibold transition">Tres en Raya</button>
+        <button data-tab="memorama" class="tab-button px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg font-semibold transition">Memorama</button>
+        <button data-tab="pokedex" class="tab-button px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg font-semibold transition">Pokédex</button>
+    </div>
+
+    <!-- Game Content -->
+    <main class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-lg p-6 sm:p-8">
+        <!-- Tic-Tac-Toe Game -->
+        <div id="game-tictactoe" class="game-content">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Tres en Raya vs. PC</h2>
+                <p id="tictactoe-status" class="text-blue-300 mt-2 text-lg">Tu turno (X)</p>
+            </div>
+            <div id="tictactoe-board" class="tictactoe-board mb-6"></div>
+            <div class="text-center">
+                <button id="tictactoe-reset" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition">Reiniciar</button>
+            </div>
+        </div>
+
+        <!-- Memorama Pokémon Game -->
+        <div id="game-memorama" class="game-content hidden">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Memorama Pokémon</h2>
+                <p id="memorama-status" class="text-green-300 mt-2 text-lg">Encuentra los pares</p>
+            </div>
+            <div id="memorama-loader" class="text-center py-10">
+                <p class="text-lg animate-pulse">Cargando Pokémon...</p>
+            </div>
+            <div id="memorama-board" class="memorama-board mb-6 hidden"></div>
+             <div class="text-center">
+                <button id="memorama-reset" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition hidden">Jugar de Nuevo</button>
+            </div>
+        </div>
+
+        <!-- Pokédex -->
+        <div id="game-pokedex" class="game-content hidden">
+             <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Pokédex</h2>
+                <p class="text-amber-300 mt-2 text-lg">Haz clic en un Pokémon para ver sus detalles</p>
+            </div>
+            <div id="pokedex-loader" class="text-center py-10">
+                <p class="text-lg animate-pulse">Cargando Pokémon...</p>
+            </div>
+            <div id="pokedex-list" class="pokedex-list mb-6"></div>
+        </div>
+    </main>
+
+    <!-- Modal for results and details -->
+    <div id="modal" class="modal-overlay">
+        <div id="modal-content" class="modal-content">
+            <!-- Content will be injected by JS -->
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- GENERAL APP LOGIC ---
+        const app = {
+            tabs: document.querySelectorAll('.tab-button'),
+            gameContents: document.querySelectorAll('.game-content'),
+            modal: document.getElementById('modal'),
+            modalContent: document.getElementById('modal-content'),
+            
+            init() {
+                this.setupTabs();
+                this.modal.addEventListener('click', (e) => {
+                    if (e.target === this.modal) this.hideModal();
+                });
+                
+                ticTacToeGame.init(this);
+                memoramaGame.init(this);
+                pokedexGame.init(this);
+            },
+
+            setupTabs() {
+                this.tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const targetId = `game-${tab.dataset.tab}`;
+                        this.activateTab(tab, targetId);
+                        
+                        if (tab.dataset.tab === 'memorama' && !memoramaGame.initialized) memoramaGame.start();
+                        if (tab.dataset.tab === 'pokedex' && !pokedexGame.initialized) pokedexGame.start();
+                    });
+                });
+            },
+
+            activateTab(activeTab, targetId) {
+                this.tabs.forEach(t => t.classList.remove('active'));
+                activeTab.classList.add('active');
+                this.gameContents.forEach(content => {
+                    content.classList.toggle('hidden', content.id !== targetId);
+                });
+            },
+
+            showModal(htmlContent) {
+                this.modalContent.innerHTML = htmlContent;
+                this.modal.classList.add('visible');
+            },
+
+            hideModal() {
+                this.modal.classList.remove('visible');
+            }
+        };
+
+        // --- TIC-TAC-TOE LOGIC ---
+        const ticTacToeGame = {
+            boardElement: document.getElementById('tictactoe-board'),
+            statusText: document.getElementById('tictactoe-status'),
+            resetButton: document.getElementById('tictactoe-reset'),
+            state: {},
+            app: null,
+
+            init(app) {
+                this.app = app;
+                this.resetButton.addEventListener('click', () => this.resetGame());
+                this.boardElement.addEventListener('click', (e) => this.handleCellClick(e));
+                this.createBoard();
+                this.resetGame();
+            },
+            
+            createBoard() {
+                this.boardElement.innerHTML = '';
+                for (let i = 0; i < 9; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.index = i;
+                    cell.appendChild(document.createElement('span'));
+                    this.boardElement.appendChild(cell);
+                }
+            },
+
+            resetGame() {
+                this.state = { board: Array(9).fill(null), currentPlayer: 'X', gameActive: true };
+                this.statusText.textContent = `Tu turno (X)`;
+                document.querySelectorAll('#tictactoe-board .cell').forEach(cell => {
+                    cell.querySelector('span').textContent = '';
+                    cell.classList.remove('x', 'o');
+                });
+            },
+
+            handleCellClick(event) {
+                const clickedCell = event.target.closest('.cell');
+                if (!clickedCell || !this.state.gameActive || this.state.currentPlayer !== 'X') return;
+                
+                const index = parseInt(clickedCell.dataset.index);
+                if (this.state.board[index]) return;
+
+                this.makeMove(index, 'X');
+
+                if (this.state.gameActive) {
+                    this.state.currentPlayer = 'O';
+                    this.statusText.textContent = `Pensando...`;
+                    setTimeout(() => this.computerTurn(), 600);
+                }
+            },
+            
+            computerTurn() {
+                if (!this.state.gameActive) return;
+                const emptyCells = this.state.board.map((val, idx) => val === null ? idx : null).filter(val => val !== null);
+                const randomIndex = Math.floor(Math.random() * emptyCells.length);
+                this.makeMove(emptyCells[randomIndex], 'O');
+                if (this.state.gameActive) {
+                    this.state.currentPlayer = 'X';
+                    this.statusText.textContent = `Tu turno (X)`;
+                }
+            },
+            
+            makeMove(index, player) {
+                this.state.board[index] = player;
+                const cell = this.boardElement.children[index];
+                cell.querySelector('span').textContent = player;
+                cell.classList.add(player.toLowerCase());
+                this.checkResult();
+            },
+
+            checkResult() {
+                const winConditions = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+                let roundWon = winConditions.some(c => this.state.board[c[0]] && this.state.board[c[0]] === this.state.board[c[1]] && this.state.board[c[0]] === this.state.board[c[2]]);
+                if (roundWon) this.endGame(false);
+                else if (!this.state.board.includes(null)) this.endGame(true);
+            },
+
+            endGame(isDraw) {
+                this.state.gameActive = false;
+                const winner = this.state.currentPlayer;
+                let title, text;
+                if (isDraw) {
+                    title = "¡Empate!";
+                    text = "Nadie gana esta vez. ¡Inténtalo de nuevo!";
+                } else {
+                    title = winner === 'X' ? '¡Ganaste!' : '¡Perdiste!';
+                    text = winner === 'X' ? 'Felicidades, le ganaste a la PC.' : 'La PC te ha ganado.';
+                }
+                const modalHTML = `
+                    <h3 class="text-3xl font-bold mb-4">${title}</h3>
+                    <p class="text-gray-300 mb-6">${text}</p>
+                    <button onclick="ticTacToeGame.resetGame(); app.hideModal();" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition">Jugar de Nuevo</button>
+                `;
+                setTimeout(() => this.app.showModal(modalHTML), 300);
+            }
+        };
+
+        // --- MEMORAMA POKEMON LOGIC ---
+        const memoramaGame = {
+            board: document.getElementById('memorama-board'),
+            loader: document.getElementById('memorama-loader'),
+            resetBtn: document.getElementById('memorama-reset'),
+            status: document.getElementById('memorama-status'),
+            app: null, initialized: false,
+            flippedCards: [], matchedPairs: 0, totalPairs: 8, lockBoard: false,
+
+            init(app) { this.app = app; this.resetBtn.addEventListener('click', () => this.start()); },
+
+            async start() {
+                this.initialized = true; this.reset(); this.showLoader(true);
+                try {
+                    const pokemons = await this.fetchPokemon(this.totalPairs);
+                    this.shuffle([...pokemons, ...pokemons]);
+                    this.createBoard(this.shuffledCards);
+                } catch (e) { this.status.textContent = "Error al cargar Pokémon."; } 
+                finally { this.showLoader(false); }
+            },
+            
+            reset() {
+                this.board.innerHTML = ''; this.flippedCards = []; this.matchedPairs = 0;
+                this.lockBoard = false; this.resetBtn.classList.add('hidden');
+                this.status.textContent = "Encuentra los pares";
+            },
+
+            async fetchPokemon(count) {
+                const usedIds = new Set();
+                while (usedIds.size < count) usedIds.add(Math.floor(Math.random() * 151) + 1);
+                const promises = [...usedIds].map(id => fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(res => res.json()));
+                return (await Promise.all(promises)).map(p => ({ id: p.id, name: p.name, image: p.sprites.front_default }));
+            },
+
+            shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                this.shuffledCards = array;
+            },
+
+            createBoard(cards) {
+                cards.forEach(cardData => {
+                    const card = document.createElement('div');
+                    card.classList.add('memo-card'); card.dataset.id = cardData.id;
+                    card.innerHTML = `
+                        <div class="card-face card-back"></div>
+                        <div class="card-face card-front"><img src="${cardData.image}" alt="${cardData.name}"></div>`;
+                    card.addEventListener('click', () => this.flipCard(card));
+                    this.board.appendChild(card);
+                });
+            },
+
+            flipCard(card) {
+                if (this.lockBoard || card.classList.contains('flipped')) return;
+                card.classList.add('flipped'); this.flippedCards.push(card);
+                if (this.flippedCards.length === 2) this.checkForMatch();
+            },
+
+            checkForMatch() {
+                this.lockBoard = true;
+                const [c1, c2] = this.flippedCards;
+                if (c1.dataset.id === c2.dataset.id) {
+                    this.matchedPairs++; c1.classList.add('matched'); c2.classList.add('matched');
+                    this.flippedCards = []; this.lockBoard = false;
+                    if (this.matchedPairs === this.totalPairs) this.endGame();
+                } else {
+                    setTimeout(() => {
+                        c1.classList.remove('flipped'); c2.classList.remove('flipped');
+                        this.flippedCards = []; this.lockBoard = false;
+                    }, 1000);
+                }
+            },
+            
+            endGame() {
+                this.status.textContent = "¡Felicidades, los encontraste todos!";
+                this.resetBtn.classList.remove('hidden');
+            },
+
+            showLoader(isLoading) {
+                this.loader.classList.toggle('hidden', !isLoading);
+                this.board.classList.toggle('hidden', isLoading);
+            }
+        };
+
+        // --- POKEDEX LOGIC ---
+        const pokedexGame = {
+            list: document.getElementById('pokedex-list'),
+            loader: document.getElementById('pokedex-loader'),
+            app: null, initialized: false,
+
+            init(app) { this.app = app; },
+
+            async start() {
+                this.initialized = true; this.showLoader(true);
+                try {
+                    const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=40');
+                    const data = await res.json();
+                    this.createList(data.results);
+                } catch (e) { this.list.innerHTML = `<p class="text-red-400">Error al cargar la lista.</p>`; }
+                finally { this.showLoader(false); }
+            },
+
+            createList(pokemons) {
+                this.list.innerHTML = '';
+                pokemons.forEach(p => {
+                    const id = p.url.split('/')[6];
+                    const card = document.createElement('div');
+                    card.className = 'pokemon-card';
+                    card.innerHTML = `
+                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" alt="${p.name}" loading="lazy">
+                        <p>${p.name}</p>`;
+                    card.addEventListener('click', () => this.showPokemonDetails(id));
+                    this.list.appendChild(card);
+                });
+            },
+
+            async showPokemonDetails(id) {
+                try {
+                    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+                    const p = await res.json();
+                    const types = p.types.map(t => `<span class="type-badge" style="background-color: var(--type-${t.type.name})">${t.type.name}</span>`).join(' ');
+                    const abilities = p.abilities.map(a => a.ability.name).join(', ');
+                    const stats = p.stats.map(s => `
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="font-semibold uppercase text-gray-400">${s.stat.name.replace('-', ' ')}</span>
+                            <span class="font-bold">${s.base_stat}</span>
+                        </div>
+                        <div class="w-full bg-gray-600 rounded-full h-2.5"><div class="bg-blue-500 h-2.5 rounded-full" style="width: ${Math.min(s.base_stat, 150) / 1.5}%"></div></div>
+                    `).join('');
+
+                    const modalHTML = `
+                        <div class="text-center">
+                            <img src="${p.sprites.front_default}" class="mx-auto w-32 h-32" style="image-rendering: pixelated;" alt="${p.name}">
+                            <h3 class="text-3xl font-bold capitalize mt-2">${p.name} <span class="text-gray-400 text-xl">#${p.id.toString().padStart(3, '0')}</span></h3>
+                            <div class="flex justify-center gap-2 my-4">${types}</div>
+                        </div>
+                        <div class="space-y-3 mt-4">${stats}</div>
+                        <button onclick="app.hideModal()" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">Cerrar</button>
+                    `;
+                    this.app.showModal(modalHTML);
+                } catch (e) {
+                    this.app.showModal(`<p class="text-red-400">No se pudieron cargar los detalles.</p>`);
+                }
+            },
+
+            showLoader(isLoading) {
+                this.loader.classList.toggle('hidden', !isLoading);
+                this.list.classList.toggle('hidden', isLoading);
+            }
+        };
+
+        // Start the application
+        app.init();
+        window.ticTacToeGame = ticTacToeGame; // Make it accessible from modal button
+        window.app = app; // Make it accessible from modal button
+    });
+</script>
+
+</body>
+</html>
