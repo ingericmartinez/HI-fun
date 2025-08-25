@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hot Cakes Asquerosos</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --container-bg: linear-gradient(145deg, #e6eef7, #ffffff);
+            --shadow-light: rgba(255, 255, 255, 0.9);
+            --shadow-dark: rgba(183, 193, 209, 0.6);
+            --font-family: 'Fredoka', sans-serif;
+            --hotcake-color: #ffebc1;
+            --hotcake-shadow: #e6a756;
+            --player1-color: #3b82f6;
+            --player2-color: #ef4444;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .main-container {
+            background: var(--container-bg);
+            border-radius: 30px;
+            padding: 25px;
+            box-shadow: 10px 10px 30px var(--shadow-dark), -10px -10px 30px var(--shadow-light);
+            text-align: center;
+            width: 95%;
+            max-width: 1000px;
+            border: 2px solid rgba(255,255,255,0.8);
+            position: relative; /* Para el overlay */
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+            color: #4a5a70;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: #6b7b93;
+            margin-bottom: 20px;
+        }
+
+        .game-area {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* --- Zonas de Jugador --- */
+        .player-zone {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+
+        .player-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        #player1-header { color: var(--player1-color); }
+        #player2-header { color: var(--player2-color); }
+
+        /* --- Hot Cakes --- */
+        .hotcake-area {
+            width: 280px;
+            height: 280px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .hotcake {
+            width: 250px;
+            height: 250px;
+            background-color: var(--hotcake-color);
+            box-shadow: inset 0 -15px 20px -10px var(--hotcake-shadow);
+            animation: wobble 8s ease-in-out infinite;
+            position: relative;
+        }
+        
+        @keyframes wobble {
+            0%, 100% { border-radius: 48% 52% 51% 49% / 48% 49% 51% 52%; }
+            25% { border-radius: 52% 48% 48% 52% / 52% 51% 49% 48%; }
+            50% { border-radius: 48% 52% 51% 49% / 49% 48% 52% 51%; }
+            75% { border-radius: 51% 49% 52% 48% / 51% 52% 48% 49%; }
+        }
+
+        .score {
+            margin-top: 15px;
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+        .score span { font-weight: 600; font-size: 1.5rem; }
+
+        /* --- Paleta de Toppings --- */
+        .toppings-palette {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            background-color: #d1d9e6;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: inset 5px 5px 15px var(--shadow-dark), inset -5px -5px 15px var(--shadow-light);
+            align-self: center;
+        }
+        
+        .topping {
+            width: 80px;
+            height: 80px;
+            background-color: #e6eef7;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            cursor: grab;
+            box-shadow: 3px 3px 8px var(--shadow-dark), -3px -3px 8px var(--shadow-light);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .topping:hover {
+            transform: scale(1.1);
+        }
+
+        .topping:active {
+            cursor: grabbing;
+        }
+        
+        .topping.dragging {
+            opacity: 0.5;
+        }
+        
+        .placed-topping {
+            position: absolute;
+            font-size: 2rem;
+            pointer-events: none;
+            animation: drop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes drop-in {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        /* --- Overlays de Mensajes --- */
+        .message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            border-radius: 30px;
+            pointer-events: none;
+        }
+        .message-overlay.visible {
+            display: flex;
+            pointer-events: auto;
+        }
+        
+        #fuchi-overlay {
+            background-color: rgba(30, 41, 59, 0.7);
+            flex-direction: column;
+        }
+
+        #drop-message-overlay {
+            background-color: rgba(230, 238, 247, 0.8);
+        }
+
+        .fuchi-emoji {
+            font-size: 12rem;
+            animation: fuchi-spin 2.5s ease-in-out forwards;
+        }
+
+        #fuchi-message {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: white;
+            margin-top: -20px;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            opacity: 0;
+            animation: fade-in-text 2.5s ease-in-out forwards;
+        }
+
+        #drop-message-text {
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: var(--color-orange);
+            text-shadow: 2px 2px 4px var(--shadow-dark);
+            animation: pop-in-out 1s ease-in-out forwards;
+        }
+
+        @keyframes fuchi-spin {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            25% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+            75% { transform: scale(1.2) rotate(540deg); opacity: 1; }
+            100% { transform: scale(0) rotate(720deg); opacity: 0; }
+        }
+        
+        @keyframes fade-in-text {
+            0%, 20% { opacity: 0; }
+            30%, 70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes pop-in-out {
+            0% { transform: scale(0); opacity: 0; }
+            25% { transform: scale(1.2); opacity: 1; }
+            75% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* --- Área de Resultados --- */
+        .results-area {
+            margin-top: 20px;
+        }
+        #winner-message {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #22c55e;
+            height: 40px;
+        }
+        #reset-btn {
+            background: linear-gradient(145deg, #3b82f6, #60a5fa);
+            border: none;
+            border-radius: 50px;
+            padding: 15px 30px;
+            font-family: var(--font-family);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            box-shadow: 5px 5px 15px var(--shadow-dark), -5px -5px 15px var(--shadow-light);
+            transition: all 0.2s ease-in-out;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- Overlays -->
+        <div id="fuchi-overlay" class="message-overlay">
+            <div class="fuchi-emoji">🤢</div>
+            <h2 id="fuchi-message"></h2>
+        </div>
+        <div id="drop-message-overlay" class="message-overlay">
+            <span id="drop-message-text"></span>
+        </div>
+
+        <header>
+            <h1>Hot Cakes Asquerosos</h1>
+            <p>Arrastra los toppings a los hot cakes. ¡Gana el más asqueroso!</p>
+        </header>
+
+        <div class="game-area">
+            <!-- Zona Jugador 1 -->
+            <div class="player-zone" id="player-zone-1">
+                <h2 id="player1-header" class="player-header">Jugador 1</h2>
+                <div class="hotcake-area" id="hotcake-area-1">
+                    <div class="hotcake"></div>
+                </div>
+                <div class="score">Nivel de Asco: <span id="score-1">0</span></div>
+            </div>
+
+            <!-- Paleta de Toppings -->
+            <div class="toppings-palette">
+                <div class="topping" draggable="true" data-topping="cockroach" data-grossness="10">🪳</div>
+                <div class="topping" draggable="true" data-topping="rat-hair" data-grossness="8">🐀</div>
+                <div class="topping" draggable="true" data-topping="worm" data-grossness="6">🐛</div>
+                <div class="topping" draggable="true" data-topping="fish-bones" data-grossness="7">🦴</div>
+                <div class="topping" draggable="true" data-topping="stinky-sock" data-grossness="9">🧦</div>
+                <div class="topping" draggable="true" data-topping="crushed-can" data-grossness="5">🥫</div>
+            </div>
+
+            <!-- Zona Jugador 2 -->
+            <div class="player-zone" id="player-zone-2">
+                <h2 id="player2-header" class="player-header">Jugador 2</h2>
+                <div class="hotcake-area" id="hotcake-area-2">
+                    <div class="hotcake"></div>
+                </div>
+                <div class="score">Nivel de Asco: <span id="score-2">0</span></div>
+            </div>
+        </div>
+
+        <div class="results-area">
+            <h3 id="winner-message"></h3>
+            <button id="reset-btn">Empezar de Nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toppings = document.querySelectorAll('.topping');
+            const hotcakeAreas = document.querySelectorAll('.hotcake-area');
+            const scoreDisplays = [null, document.getElementById('score-1'), document.getElementById('score-2')];
+            const winnerMessage = document.getElementById('winner-message');
+            const resetButton = document.getElementById('reset-btn');
+            const fuchiOverlay = document.getElementById('fuchi-overlay');
+            const fuchiMessage = document.getElementById('fuchi-message');
+            const dropMessageOverlay = document.getElementById('drop-message-overlay');
+            const dropMessageText = document.getElementById('drop-message-text');
+
+            const grossPhrases = ["¡Apestoso!", "¡Qué Horrible!", "¡Fúchila!", "¡Muy Asqueroso!", "¡Guácala!"];
+            let scores = [0, 0, 0];
+            let hasTriggeredFuchi = [false, false, false];
+            let audioCtx;
+
+            // --- Lógica de Arrastrar y Soltar ---
+            toppings.forEach(topping => {
+                topping.addEventListener('dragstart', (e) => {
+                    e.target.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', e.target.dataset.topping);
+                });
+                topping.addEventListener('dragend', (e) => {
+                    e.target.classList.remove('dragging');
+                });
+            });
+
+            hotcakeAreas.forEach((area, index) => {
+                const playerNum = index + 1;
+                area.addEventListener('dragover', (e) => e.preventDefault());
+                area.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (fuchiOverlay.classList.contains('visible') || dropMessageOverlay.classList.contains('visible')) return;
+                    
+                    const toppingType = e.dataTransfer.getData('text/plain');
+                    const droppedItem = document.querySelector(`.topping[data-topping='${toppingType}']`);
+                    if (!droppedItem) return;
+
+                    showDropMessage(() => {
+                        placeTopping(e.clientX, e.clientY, area, droppedItem);
+                        const grossness = parseInt(droppedItem.dataset.grossness, 10);
+                        updateScore(playerNum, grossness);
+                    });
+                });
+            });
+
+            function showDropMessage(callback) {
+                const randomPhrase = grossPhrases[Math.floor(Math.random() * grossPhrases.length)];
+                dropMessageText.textContent = randomPhrase;
+                dropMessageOverlay.classList.add('visible');
+
+                setTimeout(() => {
+                    dropMessageOverlay.classList.remove('visible');
+                    setTimeout(callback, 100); 
+                }, 1000);
+            }
+            
+            function placeTopping(x, y, area, item) {
+                playDropSound(); // Sonido al soltar
+                const rect = area.getBoundingClientRect();
+                const toppingClone = document.createElement('div');
+                toppingClone.classList.add('placed-topping');
+                toppingClone.innerHTML = item.innerHTML;
+                const relativeX = x - rect.left - 20;
+                const relativeY = y - rect.top - 20;
+                toppingClone.style.left = `${relativeX}px`;
+                toppingClone.style.top = `${relativeY}px`;
+                area.appendChild(toppingClone);
+            }
+
+            // --- Lógica del Juego ---
+            function updateScore(playerNum, points) {
+                scores[playerNum] += points;
+                scoreDisplays[playerNum].textContent = scores[playerNum];
+
+                if (scores[playerNum] > 50 && !hasTriggeredFuchi[playerNum]) {
+                    triggerFuchiAnimation(playerNum);
+                    hasTriggeredFuchi[playerNum] = true;
+                } else {
+                    checkWinner();
+                }
+            }
+
+            function triggerFuchiAnimation(playerNum) {
+                fuchiMessage.textContent = `¡Jugador ${playerNum} es el más asqueroso!`;
+                fuchiMessage.style.color = playerNum === 1 ? 'var(--player1-color)' : 'var(--player2-color)';
+                fuchiOverlay.classList.add('visible');
+                
+                setTimeout(() => {
+                    playWuacalaSound();
+                    setTimeout(() => {
+                        resetGame();
+                        fuchiOverlay.classList.remove('visible');
+                    }, 500);
+                }, 2500);
+            }
+
+            function playDropSound() {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            }
+
+            function playWuacalaSound() {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.type = 'sawtooth';
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                
+                oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+                oscillator.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.4);
+                
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.5);
+            }
+
+            function checkWinner() {
+                if (scores[1] > scores[2]) {
+                    winnerMessage.textContent = '¡El Jugador 1 es el más asqueroso!';
+                    winnerMessage.style.color = 'var(--player1-color)';
+                } else if (scores[2] > scores[1]) {
+                    winnerMessage.textContent = '¡El Jugador 2 es el más asqueroso!';
+                    winnerMessage.style.color = 'var(--player2-color)';
+                } else if (scores[1] > 0 && scores[1] === scores[2]) {
+                    winnerMessage.textContent = '¡Es un empate asqueroso!';
+                    winnerMessage.style.color = '#f97316';
+                }
+            }
+
+            function resetGame() {
+                scores = [0, 0, 0];
+                hasTriggeredFuchi = [false, false, false];
+                scoreDisplays[1].textContent = '0';
+                scoreDisplays[2].textContent = '0';
+                winnerMessage.textContent = '';
+                
+                hotcakeAreas.forEach(area => {
+                    const placed = area.querySelectorAll('.placed-topping');
+                    placed.forEach(p => p.remove());
+                });
+            }
+
+            resetButton.addEventListener('click', resetGame);
+        });
+    </script>
+
+</body>
+</html>

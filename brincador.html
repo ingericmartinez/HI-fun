@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Gallito Saltador</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f7f7f7;
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+        }
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .game-container {
+            width: 800px;
+            height: 400px;
+            border: 3px solid #333;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #87ceeb 0%, #f7f7f7 50%);
+        }
+        #player {
+            position: absolute;
+            bottom: 50px; /* Altura inicial sobre el suelo */
+            left: 50px;
+            width: 60px;
+            height: 60px;
+            font-size: 50px;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+        .jump {
+            animation: jump-animation 0.9s ease-out;
+        }
+        .jump-fast {
+            animation: jump-animation 0.765s ease-out; /* 15% más rápido que 0.9s */
+        }
+        @keyframes jump-animation {
+            0% { transform: translateY(0) scaleX(1); }
+            50% { transform: translateY(-150px) scaleX(-1); } /* Voltea a la mitad del salto */
+            100% { transform: translateY(0) scaleX(-1); }
+        }
+        .obstacle, .collectible {
+            position: absolute;
+            bottom: 50px;
+            width: 50px;
+            height: 50px;
+            font-size: 40px;
+            z-index: 10;
+        }
+        .collectible {
+            bottom: 120px; /* Aparecen más arriba */
+        }
+        #ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50"><path d="M0 25 H 100" stroke="%23333" stroke-width="2" stroke-dasharray="5 5" /></svg>');
+            background-repeat: repeat-x;
+            animation: move-ground 2s linear infinite;
+            z-index: 5;
+        }
+        @keyframes move-ground {
+            from { background-position-x: 0; }
+            to { background-position-x: -100px; }
+        }
+        #score-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.5em;
+            color: #555;
+        }
+        .flash {
+            animation: flash-animation 0.5s;
+        }
+        @keyframes flash-animation {
+            0%, 100% { transform: scale(1); color: #555; }
+            50% { transform: scale(1.3); color: #ffeb3b; text-shadow: 0 0 10px #000;}
+        }
+        .message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #555;
+            text-align: center;
+            background-color: rgba(247, 247, 247, 0.8);
+            z-index: 20;
+        }
+        .popup-content {
+            background-color: white;
+            padding: 30px 40px;
+            border-radius: 20px;
+            border: 3px solid #333;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .popup-content h1 {
+            font-size: 2em;
+            margin: 0 0 15px 0;
+        }
+        .popup-content img {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+        .popup-content button, .message-overlay button {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1em;
+            padding: 15px 25px;
+            border: 3px solid #333;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #222;
+            text-align: center;
+        }
+        .popup-content button {
+             background-color: #4CAF50;
+             color: white;
+        }
+        .message-overlay button {
+            background-color: #f44336;
+            color: white;
+            margin-top: 20px;
+        }
+        .popup-content button:active, .message-overlay button:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #222;
+        }
+        #controls-container {
+            margin-top: 20px;
+        }
+        #jump-button {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5em;
+            padding: 15px 30px;
+            background-color: #4CAF50;
+            color: white;
+            border: 3px solid #333;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #222;
+        }
+        #jump-button:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #222;
+        }
+        /* --- NUEVO: Estilos para las nubes --- */
+        .cloud {
+            position: absolute;
+            width: 100px;
+            height: 40px;
+            background: #fff;
+            border-radius: 100px;
+            opacity: 0.7;
+            animation: move-cloud linear;
+            z-index: 1; /* Detrás de otros elementos */
+        }
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: #fff;
+            width: 50px;
+            height: 50px;
+            top: -25px;
+            left: 15px;
+            border-radius: 100px;
+        }
+        .cloud::after {
+            width: 60px;
+            height: 60px;
+            top: -30px;
+            left: auto;
+            right: 15px;
+        }
+        @keyframes move-cloud {
+            from { right: -150px; }
+            to { right: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="game-container" id="game-container">
+            <div id="player">🐔</div>
+            <div id="ground"></div>
+            <div id="score-container">Puntuación: <span id="score">0</span></div>
+            <div class="message-overlay" id="start-message">
+                <div class="popup-content">
+                    <h1>Pollo Locochon</h1>
+                    <img src="https://media.tenor.com/images/ea2c972f02912f8d4b51090144943109/tenor.gif" 
+                         alt="Pollo Locochon GIF" 
+                         onerror="this.onerror=null;this.src='https://placehold.co/150x150/FFC107/000000?text=Pollo+Loco';">
+                    <button id="start-button-popup">¡A Jugar!</button>
+                </div>
+            </div>
+            <div class="message-overlay" id="game-over-message" style="display: none;">
+                <h1>Juego Terminado</h1>
+                <button id="restart-button">Perdiste<br>¿quieres jugar de nuevo?</button>
+            </div>
+        </div>
+        <div id="controls-container">
+            <button id="jump-button">Brincar</button>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const gameContainer = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const scoreEl = document.getElementById('score');
+        const startMessage = document.getElementById('start-message');
+        const gameOverMessage = document.getElementById('game-over-message');
+        const jumpButton = document.getElementById('jump-button');
+        const restartButton = document.getElementById('restart-button');
+        const startButtonPopup = document.getElementById('start-button-popup');
+
+        let score = 0;
+        let isJumping = false;
+        let isGameOver = true;
+        let gameSpeed = 5;
+        let gameLoopInterval;
+        let playerDirection = 1;
+        let speedBoostApplied = false;
+        // --- NUEVO: Variables para las nubes ---
+        let cloudsEnabled = false;
+        let cloudInterval;
+
+        const OBSTACLES = ['💩', '🌵', '🪳'];
+        const COLLECTIBLES = ['🍬', '🍭', '🍩'];
+
+        function startGame() {
+            isGameOver = false;
+            score = 0;
+            gameSpeed = 5;
+            playerDirection = 1;
+            speedBoostApplied = false;
+            cloudsEnabled = false; // Reiniciar nubes
+            clearInterval(cloudInterval); // Limpiar intervalo anterior
+            player.style.transform = 'scaleX(1)';
+            updateScore();
+            startMessage.style.display = 'none';
+            gameOverMessage.style.display = 'none';
+
+            document.querySelectorAll('.obstacle, .collectible, .cloud').forEach(obj => obj.remove());
+            
+            spawnObject();
+            gameLoopInterval = setInterval(gameLoop, 20);
+        }
+
+        function jump() {
+            if (isJumping || isGameOver) return;
+            isJumping = true;
+            
+            score += 10;
+            updateScore();
+
+            if (score >= 50 && !speedBoostApplied) {
+                gameSpeed *= 1.10;
+                speedBoostApplied = true;
+            }
+
+            playerDirection *= -1;
+            player.style.transform = `scaleX(${playerDirection})`;
+            
+            const jumpClass = score >= 250 ? 'jump-fast' : 'jump';
+            const jumpDuration = score >= 250 ? 765 : 900;
+
+            player.classList.add(jumpClass);
+            
+            setTimeout(() => {
+                player.classList.remove(jumpClass);
+                isJumping = false;
+            }, jumpDuration);
+        }
+
+        function spawnObject() {
+            if (document.querySelector('.obstacle') || document.querySelector('.collectible')) return;
+
+            let newObject;
+            if (score >= 200 && Math.random() < 0.3) {
+                newObject = document.createElement('div');
+                newObject.classList.add('collectible');
+                newObject.textContent = COLLECTIBLES[Math.floor(Math.random() * COLLECTIBLES.length)];
+            } else {
+                newObject = document.createElement('div');
+                newObject.classList.add('obstacle');
+                newObject.textContent = OBSTACLES[Math.floor(Math.random() * OBSTACLES.length)];
+            }
+            
+            newObject.style.right = '-50px';
+            gameContainer.appendChild(newObject);
+        }
+        
+        // --- NUEVO: Función para crear nubes ---
+        function spawnCloud() {
+            if (isGameOver) return;
+            const cloud = document.createElement('div');
+            cloud.classList.add('cloud');
+            cloud.style.top = `${Math.random() * 120 + 20}px`; // Altura aleatoria
+            const duration = Math.random() * 10 + 10; // Duración entre 10 y 20 seg
+            cloud.style.animationDuration = `${duration}s`;
+            gameContainer.insertBefore(cloud, player);
+
+            setTimeout(() => {
+                cloud.remove();
+            }, duration * 1000);
+        }
+
+        function gameLoop() {
+            if (isGameOver) {
+                clearInterval(gameLoopInterval);
+                clearInterval(cloudInterval);
+                return;
+            }
+
+            // --- NUEVO: Activar nubes al llegar a 100 puntos ---
+            if (score >= 100 && !cloudsEnabled) {
+                cloudsEnabled = true;
+                spawnCloud(); // Generar la primera nube de inmediato
+                cloudInterval = setInterval(spawnCloud, 6000); // Generar una nube cada 6 segundos
+            }
+
+            document.querySelectorAll('.obstacle, .collectible').forEach(obj => {
+                let objRight = parseFloat(obj.style.right);
+                obj.style.right = `${objRight + gameSpeed}px`;
+
+                if (objRight > gameContainer.offsetWidth) {
+                    obj.remove();
+                    spawnObject();
+                }
+
+                const playerRect = player.getBoundingClientRect();
+                const objRect = obj.getBoundingClientRect();
+
+                if (
+                    playerRect.left < objRect.right &&
+                    playerRect.right > objRect.left &&
+                    playerRect.top < objRect.bottom &&
+                    playerRect.bottom > objRect.top
+                ) {
+                    if (obj.classList.contains('obstacle')) {
+                        endGame();
+                    } else if (obj.classList.contains('collectible')) {
+                        score += 50;
+                        updateScore();
+                        scoreEl.parentElement.classList.add('flash');
+                        setTimeout(() => scoreEl.parentElement.classList.remove('flash'), 500);
+                        obj.remove();
+                        spawnObject();
+                    }
+                }
+            });
+        }
+
+        function updateScore() {
+            scoreEl.textContent = score;
+        }
+
+        function endGame() {
+            isGameOver = true;
+            gameOverMessage.style.display = 'flex';
+        }
+
+        function handleInput() {
+            if (isGameOver) {
+                startGame();
+            } else {
+                jump();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && isGameOver) {
+                startGame();
+            }
+        });
+
+        startButtonPopup.addEventListener('click', handleInput);
+        jumpButton.addEventListener('click', handleInput);
+        restartButton.addEventListener('click', handleInput);
+    });
+    </script>
+</body>
+</html>

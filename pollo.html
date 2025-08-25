@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Pollo que Cruzó el Camino</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Fredoka:wght@600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #34495e;
+            --road-color: #7f8c8d;
+            --line-color: #ecf0f1;
+            --grass-color: #2ecc71;
+            --font-game: 'Press Start 2P', cursive;
+            --font-ui: 'Fredoka', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-ui);
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+
+        .game-container {
+            background: #2c3e50;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 10px 10px 40px rgba(0,0,0,0.5);
+            border: 5px solid #95a5a6;
+            position: relative;
+        }
+
+        #game-board {
+            width: 600px;
+            height: 700px;
+            background-color: var(--grass-color);
+            position: relative;
+            overflow: hidden;
+            border: 5px solid #34495e;
+        }
+        
+        #goal-line {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            font-size: 40px;
+        }
+        
+        .dancing-chick {
+            animation: dance 1s infinite ease-in-out;
+        }
+        .dancing-chick:last-child {
+            animation-delay: 0.5s;
+        }
+        
+        @keyframes dance {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-10px) rotate(-10deg); }
+            75% { transform: translateY(5px) rotate(10deg); }
+        }
+
+        .road {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-color: var(--road-color);
+            border-top: 4px dashed var(--line-color);
+            border-bottom: 4px dashed var(--line-color);
+        }
+
+        #road-1 { top: 100px; }
+        #road-2 { top: 200px; }
+        #road-3 { top: 300px; }
+        #road-4 { top: 400px; }
+        #road-5 { top: 500px; }
+
+        #player {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            font-size: 50px;
+            bottom: 10px;
+            left: 270px;
+            transition: all 0.2s linear;
+            z-index: 10;
+        }
+        
+        .vehicle {
+            position: absolute;
+            height: 55px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .car {
+            width: 100px;
+            font-size: 45px;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+        
+        #joypad {
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left . right"
+                ". down .";
+            gap: 10px;
+        }
+        .joy-btn {
+            width: 70px;
+            height: 70px;
+            font-size: 2rem;
+            color: #2c3e50;
+            background-color: #bdc3c7;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #95a5a6;
+            transition: all 0.1s;
+        }
+        .joy-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #95a5a6;
+        }
+        #joy-up { grid-area: up; }
+        #joy-down { grid-area: down; }
+        #joy-left { grid-area: left; }
+        #joy-right { grid-area: right; }
+        
+        /* --- Overlay de Resultados --- */
+        #result-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: var(--font-game);
+        }
+        #result-overlay.visible { display: flex; }
+
+        #result-message {
+            font-size: 2rem;
+            text-shadow: 3px 3px 0 #000;
+        }
+        
+        .result-emoji {
+            font-size: 6rem;
+            margin: 20px 0;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        #reset-btn {
+            font-family: var(--font-game);
+            font-size: 1rem;
+            color: #2c3e50;
+            background-color: #2ecc71;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="game-board">
+            <div id="goal-line">
+                <span class="dancing-chick">🐥</span>
+                <span class="dancing-chick">🐥</span>
+            </div>
+            <div id="player">🐔</div>
+            <div id="road-1" class="road"></div>
+            <div id="road-2" class="road"></div>
+            <div id="road-3" class="road"></div>
+            <div id="road-4" class="road"></div>
+            <div id="road-5" class="road"></div>
+        </div>
+        <div id="result-overlay">
+            <div id="result-message"></div>
+            <div class="result-emoji"></div>
+            <button id="reset-btn">Reiniciar</button>
+        </div>
+    </div>
+    <div class="controls">
+        <div id="joypad">
+            <button class="joy-btn" id="joy-up">▲</button>
+            <button class="joy-btn" id="joy-left">◄</button>
+            <button class="joy-btn" id="joy-down">▼</button>
+            <button class="joy-btn" id="joy-right">►</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameBoard = document.getElementById('game-board');
+            const player = document.getElementById('player');
+            const resultOverlay = document.getElementById('result-overlay');
+            const resultMessage = document.getElementById('result-message');
+            const resultEmoji = resultOverlay.querySelector('.result-emoji');
+            const resetBtn = document.getElementById('reset-btn');
+
+            const boardWidth = 600;
+            const boardHeight = 700;
+            const playerSize = 60;
+            const stepSizeY = 100;
+            const stepSizeX = 50;
+            let playerPos = { x: 270, y: boardHeight - playerSize };
+            let isGameOver = false;
+            let gameLoopInterval;
+            let vehicleSpawnerIntervals = [];
+            let audioCtx;
+            
+            // ===== MODIFICACIÓN #2: Variable para controlar el movimiento del jugador =====
+            let canPlayerMove = false;
+
+            // ===== MODIFICACIÓN #1: Aumento de la velocidad de los vehículos =====
+            const laneData = [
+                { lane: 1, speed: 4.5, direction: 1 },  // Antes era 2.5
+                { lane: 2, speed: 5.5, direction: -1 }, // Antes era 3.5
+                { lane: 3, speed: 5, direction: 1 },    // Antes era 3
+                { lane: 4, speed: 6, direction: -1 },   // Antes era 4
+                { lane: 5, speed: 5.2, direction: 1 }   // Antes era 3.2
+            ];
+
+            function movePlayer(direction) {
+                // ===== MODIFICACIÓN #2: Comprobar si el jugador puede moverse =====
+                if (isGameOver || !canPlayerMove) return;
+                playMoveSound();
+                
+                switch(direction) {
+                    case 'up':
+                        playerPos.y -= stepSizeY;
+                        break;
+                    case 'down':
+                        if (playerPos.y < boardHeight - playerSize) {
+                           playerPos.y += stepSizeY;
+                        }
+                        break;
+                    case 'left':
+                        if (playerPos.x > 0) {
+                           playerPos.x -= stepSizeX;
+                        }
+                        break;
+                    case 'right':
+                         if (playerPos.x < boardWidth - playerSize) {
+                           playerPos.x += stepSizeX;
+                        }
+                        break;
+                }
+                
+                player.style.top = `${playerPos.y}px`;
+                player.style.left = `${playerPos.x}px`;
+
+                if (playerPos.y < 60) {
+                    winGame();
+                }
+            }
+
+            function createVehicle(data) {
+                // ===== MODIFICACIÓN #3: Habilitar el movimiento al crear el primer vehículo =====
+                if (!canPlayerMove) {
+                    canPlayerMove = true;
+                }
+            
+                const vehicle = document.createElement('div');
+                vehicle.classList.add('vehicle', 'car');
+                vehicle.style.top = `${data.lane * 100 + 22}px`;
+
+                const carColors = ['#e74c3c', '#3498db', '#9b59b6', '#f1c40f'];
+                vehicle.style.backgroundColor = carColors[Math.floor(Math.random() * carColors.length)];
+                vehicle.innerHTML = '🚗';
+                
+                if (data.direction === 1) {
+                    vehicle.style.left = `-100px`;
+                } else {
+                    vehicle.style.left = `${boardWidth}px`;
+                    vehicle.style.transform = 'scaleX(-1)';
+                }
+                
+                gameBoard.appendChild(vehicle);
+                return vehicle;
+            }
+
+            function gameLoop() {
+                if (isGameOver) return;
+
+                document.querySelectorAll('.vehicle').forEach(vehicle => {
+                    let vehicleX = parseFloat(vehicle.style.left);
+                    const vehicleData = laneData.find(d => `${d.lane * 100 + 22}px` === vehicle.style.top);
+                    
+                    if(vehicleData) {
+                        vehicleX += vehicleData.speed * vehicleData.direction;
+                        vehicle.style.left = `${vehicleX}px`;
+
+                        const playerRect = player.getBoundingClientRect();
+                        const vehicleRect = vehicle.getBoundingClientRect();
+
+                        if (playerRect.left < vehicleRect.right && playerRect.right > vehicleRect.left &&
+                            playerRect.top < vehicleRect.bottom && playerRect.bottom > vehicleRect.top) {
+                            loseGame();
+                        }
+                        
+                        const vehicleWidth = 100;
+                        if (vehicleX > boardWidth || vehicleX < -vehicleWidth) {
+                            vehicle.remove();
+                        }
+                    }
+                });
+            }
+
+            function spawnVehicles() {
+                laneData.forEach(data => {
+                    const interval = setInterval(() => {
+                        if (!isGameOver) {
+                           createVehicle(data);
+                        }
+                    }, 2500 + Math.random() * 2000);
+                    vehicleSpawnerIntervals.push(interval);
+                });
+            }
+            
+            function stopGame() {
+                isGameOver = true;
+                clearInterval(gameLoopInterval);
+                vehicleSpawnerIntervals.forEach(clearInterval);
+                vehicleSpawnerIntervals = [];
+            }
+
+            function winGame() {
+                resultMessage.textContent = '¡GANASTE!';
+                resultEmoji.textContent = '🏆 ';
+                resultOverlay.classList.add('visible');
+                stopGame();
+            }
+
+            function loseGame() {
+                player.textContent = '💥';
+                resultMessage.textContent = '¡PERDISTE!';
+                resultEmoji.textContent = '👎';
+                resultOverlay.classList.add('visible');
+                stopGame();
+            }
+            
+            function playMoveSound() {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                oscillator.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.1);
+            }
+
+            function resetGame() {
+                isGameOver = false;
+                // ===== MODIFICACIÓN #2: Reiniciar el bloqueo de movimiento =====
+                canPlayerMove = false;
+                playerPos = { x: 270, y: boardHeight - 60 };
+                player.style.top = `${playerPos.y}px`;
+                player.style.left = `${playerPos.x}px`;
+                player.textContent = '🐔';
+                document.querySelectorAll('.vehicle').forEach(v => v.remove());
+                resultOverlay.classList.remove('visible');
+                startGame();
+            }
+
+            function startGame() {
+                gameLoopInterval = setInterval(gameLoop, 16);
+                spawnVehicles();
+            }
+
+            // --- Controles ---
+            document.getElementById('joy-up').addEventListener('click', () => movePlayer('up'));
+            document.getElementById('joy-down').addEventListener('click', () => movePlayer('down'));
+            document.getElementById('joy-left').addEventListener('click', () => movePlayer('left'));
+            document.getElementById('joy-right').addEventListener('click', () => movePlayer('right'));
+            
+            resetBtn.addEventListener('click', resetGame);
+            
+            window.addEventListener('keydown', (e) => {
+                if (resultOverlay.classList.contains('visible')) return;
+                
+                switch(e.code) {
+                    case 'ArrowUp':
+                    case 'Space':
+                        e.preventDefault();
+                        movePlayer('up');
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        movePlayer('down');
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        movePlayer('left');
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        movePlayer('right');
+                        break;
+                }
+            });
+
+            startGame();
+        });
+    </script>
+
+</body>
+</html>
