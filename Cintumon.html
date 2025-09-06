@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinturón Pokédex Interactivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos generales */
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #f1f1f1;
+            overflow-x: hidden;
+        }
+        
+        /* Contenedor principal del cinturón/carrusel */
+        .belt-container {
+            width: 100%;
+            max-width: 1200px;
+            overflow-x: hidden;
+            margin: 0 auto; /* Centra el contenedor del cinturón */
+        }
+
+        /* El cinturón que se mueve */
+        #pokemon-belt {
+            display: flex;
+            align-items: center;
+            padding: 2rem 0;
+            gap: 1.5rem;
+            transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* --- Estilos de la Pokébola (esfera) --- */
+        .pokeball {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            background: linear-gradient(145deg, #2c3e50, #34495e);
+            border-radius: 50%;
+            overflow: hidden;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border: 3px solid #f1f1f1;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        .pokeball:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+        }
+        
+        .pokeball img {
+            filter: brightness(0) invert(1);
+            opacity: 0.7;
+            width: 60px;
+            height: auto;
+            transition: all 0.3s ease;
+        }
+        
+        /* --- Efecto de Descubrimiento --- */
+        @keyframes reveal-effect {
+            0% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); }
+            30% { transform: scale(1.15) rotate(5deg); box-shadow: 0 0 35px #fff, 0 0 55px #0ff; }
+            60% { transform: scale(0.95) rotate(-5deg); box-shadow: 0 0 35px #fff, 0 0 55px #ff0; }
+            100% { transform: scale(1); box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); }
+        }
+
+        .pokeball.is-revealing {
+            animation: reveal-effect 0.6s ease-in-out;
+        }
+        
+        /* --- Controles de Navegación y Contador --- */
+        .counter-nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem; /* Espacio entre botones y contador */
+            margin-top: 1.5rem;
+        }
+
+        #counter {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #d1d5db; /* Gris claro */
+            min-width: 120px; /* Ancho mínimo para evitar que se mueva al cambiar el número */
+            text-align: center;
+        }
+
+        .nav-button {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-button:hover:not(:disabled) {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .nav-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        /* --- Estilos de la Tarjeta Modal --- */
+        #modal-container {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease; z-index: 1000;
+        }
+        #modal-container.is-visible { opacity: 1; pointer-events: all; }
+
+        .display-card {
+            position: relative; width: 340px; height: 480px;
+            background: linear-gradient(145deg, #4a4a4a, #2c2c2c);
+            border-radius: 24px;
+            border: 4px solid var(--type-color, #ffcc00);
+            box-shadow: 0 0 35px var(--type-color-shadow, rgba(255, 204, 0, 0.7));
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: flex-end; padding: 20px; text-align: center; color: white;
+            transform: scale(0.9); transition: transform 0.3s ease;
+        }
+        #modal-container.is-visible .display-card { transform: scale(1); }
+
+        .display-card .product-image {
+            position: absolute; top: 20px; width: auto; height: 200px;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+        }
+
+        .type-badge {
+            padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem;
+            font-weight: 600; color: #1a1a1a; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <header class="text-center mb-8">
+        <h1 class="text-5xl font-bold text-yellow-300">Cinturón Pokédex</h1>
+        <p class="text-gray-400 mt-2">Navega y haz click para descubrir al Pokémon</p>
+    </header>
+
+    <div class="belt-container">
+        <div id="pokemon-belt">
+            <!-- Las Pokébolas se insertarán aquí con JS -->
+        </div>
+    </div>
+    
+    <!-- Controles y Contador -->
+    <div class="counter-nav-container">
+        <button id="prev-btn" class="nav-button">&lt;</button>
+        <div id="counter">-- / 151</div>
+        <button id="next-btn" class="nav-button">&gt;</button>
+    </div>
+    
+    <!-- Modal para la tarjeta del Pokémon -->
+    <div id="modal-container">
+        <div id="pokemon-display-card" class="display-card"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const belt = document.getElementById('pokemon-belt');
+            const counter = document.getElementById('counter');
+            const modalContainer = document.getElementById('modal-container');
+            const displayCard = document.getElementById('pokemon-display-card');
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+
+            let allPokemonData = [];
+            let currentIndex = 0;
+            const POKEMON_COUNT = 151;
+
+            const typeColors = {
+                normal: '#A8A77A', grass: '#7AC74C', fire: '#EE8130', water: '#6390F0', electric: '#F7D02C',
+                ice: '#96D9D6', fighting: '#C22E28', poison: '#A33EA1', ground: '#E2BF65', flying: '#A98FF3',
+                psychic: '#F95587', bug: '#A6B91A', rock: '#B6A136', ghost: '#735797', dragon: '#6F35FC',
+                dark: '#705746', steel: '#B7B7CE', fairy: '#D685AD'
+            };
+
+            const fetchAllPokemon = async () => {
+                counter.textContent = 'Cargando...';
+                try {
+                    allPokemonData = await Promise.all(
+                        Array.from({ length: POKEMON_COUNT }, (_, i) =>
+                            fetch(\`https://pokeapi.co/api/v2/pokemon/${i + 1}\`).then(res => res.json())
+                        )
+                    );
+                    createBelt();
+                    updateCarousel();
+                } catch (error) {
+                    counter.textContent = 'Error al cargar.';
+                    console.error("Error fetching Pokémon data:", error);
+                }
+            };
+
+            const createBelt = () => {
+                belt.innerHTML = allPokemonData.map((pokemon, index) => \`
+                    <div class="pokeball" data-index="${index}">
+                        <img src="${pokemon.sprites.other['official-artwork'].front_default}" alt="Silueta de ${pokemon.name}">
+                    </div>
+                \`).join('');
+            };
+
+            const updateCarousel = () => {
+                const pokeballs = document.querySelectorAll('.pokeball');
+                if (pokeballs.length === 0) return;
+                
+                const gap = 24;
+                const offset = (belt.parentElement.clientWidth / 2) - (pokeballs[currentIndex].clientWidth / 2) - pokeballs[currentIndex].offsetLeft;
+                
+                belt.style.transform = \`translateX(${offset}px)\`;
+                counter.textContent = \`${currentIndex + 1} / ${POKEMON_COUNT}\`;
+                
+                prevBtn.disabled = currentIndex === 0;
+                nextBtn.disabled = currentIndex === POKEMON_COUNT - 1;
+            };
+
+            const showPokemonCard = async (index) => {
+                const pokemon = allPokemonData[index];
+                const speciesRes = await fetch(pokemon.species.url);
+                const speciesData = await speciesRes.json();
+                const flavorTextEntry = speciesData.flavor_text_entries.find(entry => entry.language.name === 'es');
+                const description = flavorTextEntry ? flavorTextEntry.flavor_text.replace(/[\n\f]/g, ' ') : 'Descripción no disponible.';
+                
+                const primaryType = pokemon.types[0].type.name;
+                const typeColor = typeColors[primaryType] || '#A8A77A';
+                const typesHTML = pokemon.types.map(t => \`<span class="type-badge" style="background-color: ${typeColors[t.type.name] || '#A8A77A'};">${t.type.name}</span>\`).join(' ');
+
+                displayCard.innerHTML = \`
+                    <img class="product-image" src="${pokemon.sprites.other['official-artwork'].front_default}" alt="${pokemon.name}">
+                    <div class="mt-auto">
+                        <h2 class="text-3xl font-bold mb-2 capitalize" style="color: ${typeColor};">${pokemon.name}</h2>
+                        <div class="flex gap-2 justify-center mb-4">${typesHTML}</div>
+                        <p class="text-sm text-gray-300 mb-6 px-4">${description}</p>
+                        <span class="text-lg font-bold bg-gray-800 px-4 py-1 rounded-full">#${pokemon.id.toString().padStart(3, '0')}</span>
+                    </div>\`;
+                displayCard.style.cssText = \`--type-color: ${typeColor}; --type-color-shadow: ${typeColor}99;\`;
+                modalContainer.classList.add('is-visible');
+            };
+
+            // --- Event Listeners ---
+            nextBtn.addEventListener('click', () => { if (currentIndex < POKEMON_COUNT - 1) { currentIndex++; updateCarousel(); } });
+            prevBtn.addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; updateCarousel(); } });
+            
+            belt.addEventListener('click', (e) => {
+                const pokeball = e.target.closest('.pokeball');
+                if (pokeball) {
+                    const index = parseInt(pokeball.dataset.index);
+                    pokeball.classList.add('is-revealing');
+
+                    // Remover la clase de animación cuando termine para poder reutilizarla
+                    pokeball.addEventListener('animationend', () => {
+                        pokeball.classList.remove('is-revealing');
+                    }, { once: true });
+                    
+                    // Mostrar la tarjeta después de un breve retraso para que se vea la animación
+                    setTimeout(() => {
+                        showPokemonCard(index);
+                    }, 300); // Un pequeño retraso para que el efecto se aprecie
+                }
+            });
+
+            modalContainer.addEventListener('click', (e) => {
+                if (e.target === modalContainer) modalContainer.classList.remove('is-visible');
+            });
+            
+            fetchAllPokemon();
+        });
+    </script>
+
+</body>
+</html>
