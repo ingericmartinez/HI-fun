@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokédex 3D Pulida</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #111827;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            perspective: 1000px;
+        }
+
+        .controls-container {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: white;
+            z-index: 10;
+        }
+
+        .carousel-viewport {
+            width: 100%;
+            overflow: hidden;
+            cursor: grab;
+        }
+        .carousel-viewport.is-dragging {
+            cursor: grabbing;
+        }
+
+        .card-slider {
+            display: flex;
+            width: max-content;
+            padding: 20px;
+            gap: 24px;
+        }
+
+        .card {
+            position: relative;
+            width: 240px;
+            height: 336px;
+            background: #1f2937;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform-style: preserve-3d;
+            transition: transform 0.1s linear, opacity 0.4s ease, scale 0.4s ease;
+        }
+        
+        .card-slider.has-focus:hover .card:not(:hover) {
+            scale: 0.97;
+            opacity: 0.7;
+        }
+        .card:hover {
+            scale: 1.03;
+        }
+
+        .card .gloss {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.2), transparent 50%);
+            border-radius: 20px; z-index: 4;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .card:hover .gloss { opacity: 1; }
+        
+        .card-content-wrapper { position: absolute; inset: 0; transform-style: preserve-3d; }
+        
+        .card-bg {
+            position: absolute; inset: 0;
+            background: var(--card-color, #A8A878);
+            border-radius: 20px; overflow: hidden;
+        }
+        .card-bg::before {
+            content: ''; position: absolute;
+            top: -50%; width: 100%; height: 100%;
+            background: inherit; filter: brightness(1.2);
+            transform: skewY(345deg);
+        }
+
+        /* --- CORRECCIÓN: Transición de aparición suave --- */
+        .pokemon-image {
+            position: absolute; top: 50%; left: 50%;
+            width: 200px;
+            filter: drop-shadow(0 15px 15px rgba(0,0,0,0.4));
+            z-index: 3;
+            /* Estado inicial: invisible y un poco más pequeño */
+            opacity: 0;
+            transform: translate3d(-50%, -65%, 60px) scale(0.95); 
+            /* Transición para la opacidad y la transformación (escala) */
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out, filter 0.1s linear;
+        }
+        
+        .card:hover .pokemon-image {
+            opacity: 1;
+            /* Estado final de la transición: tamaño normal */
+            transform: translate3d(-50%, -65%, 60px) scale(1);
+            /* La animación de respiración ahora empieza DESPUÉS de la transición */
+            animation: breathe 1.8s ease-in-out infinite 0.4s;
+        }
+
+        @keyframes breathe {
+            0%, 100% {
+                transform: translate3d(-50%, -65%, 60px) scale(1);
+            }
+            50% {
+                transform: translate3d(-50%, -65%, 60px) scale(1.02);
+            }
+        }
+
+        .pokeball-logo {
+            position: absolute; bottom: 16px; left: 50%;
+            width: 100px; opacity: 1; z-index: 1;
+            transform: translate3d(-50%, 0, 20px);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+        .card:hover .pokeball-logo { opacity: 0; }
+
+        .card-content {
+            position: absolute; bottom: 0; width: 100%;
+            padding: 1.2rem; text-align: center; color: white;
+            opacity: 0; z-index: 2;
+            transform: translate3d(0, 40px, 40px);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+        .card:hover .card-content {
+            opacity: 1;
+            transform: translate3d(0, 0, 40px);
+        }
+        .card-content h2 { font-size: 1.5rem; font-weight: bold; }
+
+        .loader-container { display: flex; flex-direction: column; align-items: center; gap: 1rem; color: white; }
+        .loader { width: 80px; height: 80px; border-radius: 50%; border: 5px solid #4b5563; border-top-color: #fde047; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="loader-container">
+        <div class="loader"></div>
+        <p>Cargando Pokédex...</p>
+    </div>
+
+    <div id="app" class="hidden h-full w-full flex-col items-center justify-center">
+        <div class="controls-container">
+            <h1 class="text-5xl font-bold">Pokédex 3D</h1>
+        </div>
+        <div id="carouselViewport" class="carousel-viewport">
+            <div id="cardSlider" class="card-slider">
+                <!-- Las tarjetas se insertarán aquí -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loader = document.getElementById('loader');
+            const app = document.getElementById('app');
+            const slider = document.getElementById('cardSlider');
+            const viewport = document.getElementById('carouselViewport');
+
+            const typeColors = {
+                fire: '#F08030', grass: '#78C850', water: '#6890F0', electric: '#F8D030',
+                psychic: '#F85888', normal: '#A8A878', poison: '#A040A0', ghost: '#705898',
+                fighting: '#C03028', rock: '#B8A038', ground: '#E0C068', flying: '#A890F0',
+                bug: '#A8B820', ice: '#98D8D8', dragon: '#7038F8', steel: '#B8B8D0',
+                fairy: '#EE99AC', dark: '#705848'
+            };
+
+            const fetchAllPokemon = async () => {
+                try {
+                    const listResponse = await fetch('https://pokeapi.co/api/v2/pokemon?limit=150');
+                    if (!listResponse.ok) throw new Error('Network response was not ok');
+                    const listData = await listResponse.json();
+                    
+                    const pokemonPromises = listData.results.map(p => fetch(p.url).then(res => res.json()));
+                    const allPokemonData = await Promise.all(pokemonPromises);
+                    
+                    return allPokemonData
+                        .filter(data => data.sprites?.other?.['official-artwork']?.front_default)
+                        .map(data => ({
+                            id: data.id,
+                            name: data.name.charAt(0).toUpperCase() + data.name.slice(1),
+                            image: data.sprites.other['official-artwork'].front_default,
+                            types: data.types.map(t => t.type.name),
+                        }));
+                } catch (error) {
+                    console.error("Error al cargar los Pokémon:", error);
+                    loader.innerHTML = `<p class="text-red-400 text-center">No se pudo conectar con la PokéAPI.<br>Inténtalo de nuevo más tarde.</p>`;
+                }
+            };
+
+            const createCardHTML = (pokemon) => {
+                const mainType = pokemon.types[0];
+                const cardColor = typeColors[mainType] || '#A8A878';
+                return `
+                    <div class="card" style="--card-color: ${cardColor};">
+                        <div class="card-content-wrapper">
+                            <div class="card-bg"></div>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Pok%C3%A9_Ball_icon.svg" alt="Poké Ball" class="pokeball-logo">
+                            <img src="${pokemon.image}" alt="${pokemon.name}" class="pokemon-image">
+                            <div class="card-content">
+                                <h2>${pokemon.name}</h2>
+                                <p class="mt-1 text-xs font-bold text-gray-300">N.º ${pokemon.id.toString().padStart(3, '0')}</p>
+                                <div class="mt-2 flex justify-center gap-2">
+                                    ${pokemon.types.map(type => `
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full" style="background-color: ${typeColors[type] || '#A8A878'}; color: #111827;">
+                                            ${type.toUpperCase()}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="gloss"></div>
+                    </div>
+                `;
+            };
+            
+            const allPokemon = await fetchAllPokemon();
+            if (allPokemon && allPokemon.length > 0) {
+                slider.innerHTML = allPokemon.map(createCardHTML).join('');
+                loader.classList.add('hidden');
+                app.classList.remove('hidden');
+                app.classList.add('flex');
+
+                slider.addEventListener('mouseenter', () => slider.classList.add('has-focus'));
+                slider.addEventListener('mouseleave', () => slider.classList.remove('has-focus'));
+
+                const cards = document.querySelectorAll('.card');
+                cards.forEach(card => {
+                    const pokemonImage = card.querySelector('.pokemon-image');
+
+                    card.addEventListener('mousemove', (e) => {
+                        if (viewport.classList.contains('is-dragging')) return;
+                        const rect = card.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        
+                        const rotateX = (y - centerY) / 15;
+                        const rotateY = (centerX - x) / 15;
+                        
+                        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+
+                        const shadowX = rotateY * -1;
+                        const shadowY = rotateX;
+                        pokemonImage.style.filter = `drop-shadow(${shadowX}px ${shadowY}px 15px rgba(0,0,0,0.6))`;
+                        
+                        card.style.setProperty('--mx', `${(x / rect.width) * 100}%`);
+                        card.style.setProperty('--my', `${(y / rect.height) * 100}%`);
+                    });
+
+                    card.addEventListener('mouseleave', () => {
+                        card.style.transform = 'rotateX(0deg) rotateY(0deg)';
+                        pokemonImage.style.filter = 'drop-shadow(0 15px 15px rgba(0,0,0,0.4))';
+                    });
+                });
+
+                let isDragging = false, startX, scrollLeft;
+                const startDrag = (e) => { isDragging = true; viewport.classList.add('is-dragging'); startX = e.pageX || e.touches[0].pageX; scrollLeft = viewport.scrollLeft; };
+                const stopDrag = () => { isDragging = false; viewport.classList.remove('is-dragging'); };
+                const onDrag = (e) => {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    const x = e.pageX || e.touches[0].pageX;
+                    const walk = (x - startX) * 3;
+                    viewport.scrollLeft = scrollLeft - walk;
+                };
+                
+                viewport.addEventListener('mousedown', startDrag);
+                viewport.addEventListener('touchstart', startDrag);
+                viewport.addEventListener('mouseleave', stopDrag);
+                viewport.addEventListener('mouseup', stopDrag);
+                viewport.addEventListener('touchend', stopDrag);
+                viewport.addEventListener('mousemove', onDrag);
+                viewport.addEventListener('touchmove', onDrag);
+            }
+        });
+    </script>
+</body>
+</html>
