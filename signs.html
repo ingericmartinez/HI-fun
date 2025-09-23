@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Horóscopo Estelar</title>
+    <style>
+        /* --- Importar una fuente mística --- */
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+
+        /* --- Estilos Generales --- */
+        :root {
+            --glow-color: #f0e68c;
+            --glow-color-transparent: rgba(240, 230, 140, 0.7);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Cinzel', serif;
+            color: #fff;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            text-align: center;
+        }
+
+        /* --- Fondo Estrellado Animado --- */
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+        }
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 5s infinite ease-in-out;
+        }
+
+        /* --- Contenedor Principal y Transiciones --- */
+        .main-container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .view {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+        .view.hidden {
+            display: none; /* Changed for better performance */
+        }
+
+        /* --- Pantalla de Selección de Signos --- */
+        #sign-selection h1 {
+            font-size: 3rem;
+            color: var(--glow-color);
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px var(--glow-color);
+        }
+
+        .signs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+        }
+
+        .sign-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: glowing-border 4s infinite ease-in-out;
+        }
+        .sign-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            background: rgba(255, 255, 255, 0.1);
+            animation-play-state: paused; /* Pausa la animación de brillo para resaltar el hover */
+            box-shadow: 0 0 25px var(--glow-color-transparent);
+        }
+        .sign-card img { /* Cambiado de svg a img */
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
+        .sign-card span {
+            display: block;
+            margin-top: 10px;
+            font-size: 1rem;
+        }
+
+        /* --- Pantalla de Visualización del Horóscopo --- */
+        .horoscope-display-icon {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 30px;
+            filter: drop-shadow(0 0 15px var(--glow-color-transparent));
+        }
+
+        #horoscope-display h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: var(--glow-color);
+        }
+        #horoscope-message {
+            font-size: 1.4rem;
+            line-height: 1.6;
+            min-height: 150px; /* Evita saltos de layout */
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .back-button {
+            margin-top: 30px;
+            background: none;
+            border: 1px solid var(--glow-color);
+            color: var(--glow-color);
+            padding: 10px 20px;
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .back-button:hover {
+            background: var(--glow-color);
+            color: #000;
+            box-shadow: 0 0 15px var(--glow-color);
+        }
+        
+        /* --- Animaciones --- */
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.5; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        @keyframes glowing-border {
+            0% { box-shadow: 0 0 5px rgba(240, 230, 140, 0.2); }
+            50% { box-shadow: 0 0 20px var(--glow-color-transparent); }
+            100% { box-shadow: 0 0 5px rgba(240, 230, 140, 0.2); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            #sign-selection h1 { font-size: 2rem; }
+            .signs-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .sign-card img { width: 50px; height: 50px; }
+            .sign-card span { font-size: 0.8rem; }
+            .horoscope-display-icon { width: 100px; height: 100px; }
+            #horoscope-display h2 { font-size: 2rem; }
+            #horoscope-message { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Contenedor para las estrellas del fondo -->
+    <div id="starsContainer" class="stars-container"></div>
+
+    <main class="main-container">
+        <!-- Vista de Selección de Signo -->
+        <div id="sign-selection" class="view">
+            <h1>Elige tu Signo Zodiacal</h1>
+            <div class="signs-grid">
+                <!-- Los signos se generarán aquí con JS -->
+            </div>
+        </div>
+
+        <!-- Vista de Horóscopo -->
+        <div id="horoscope-display" class="view hidden">
+            <div id="horoscope-icon-container"></div>
+            <h2 id="horoscope-sign-name"></h2>
+            <p id="horoscope-message"></p>
+            <button id="back-button" class="back-button">← Volver</button>
+        </div>
+    </main>
+
+    <script>
+        // --- Datos del Zodiaco con Iconos de Flaticon y Mensajes Únicos ---
+        const zodiacSigns = {
+            aries: { 
+                name: 'Aries', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/aries.png',
+                message: 'Tu energía es magnética. Se abren puertas a nuevas pasiones y aventuras románticas que revitalizarán tu vida personal y sexual. Es momento de atreverse y conquistar.'
+            },
+            taurus: { 
+                name: 'Tauro', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/taurus.png',
+                message: 'La estabilidad llega a tu vida personal, brindándote paz y confort. En el amor, la conexión se profundiza. Disfruta de los placeres sencillos y la buena compañía.'
+            },
+            gemini: { 
+                name: 'Géminis', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/gemini.png',
+                message: 'Te enfrentarás a una evaluación o crítica inesperada que podría desanimarte. No dejes que nuble tu juicio; es una prueba temporal. El próximo año traerá la claridad y el reconocimiento que mereces.'
+            },
+            cancer: { 
+                name: 'Cáncer', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/cancer.png',
+                message: 'Una situación laboral o personal será evaluada de forma más dura de lo que esperas. Usa tu intuición para navegar este momento. Recuerda que es un escalón hacia un crecimiento mucho mayor el año que viene.'
+            },
+            leo: { 
+                name: 'Leo', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/leo.png',
+                message: 'Tu liderazgo será puesto a prueba y podrías recibir una evaluación que no refleja tu esfuerzo. Mantén la cabeza en alto. Esta situación es pasajera y te fortalecerá para los grandes éxitos que te esperan el próximo año.'
+            },
+            virgo: { 
+                name: 'Virgo', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/virgo.png',
+                message: 'El orden y la claridad mental te permitirán fortalecer tus relaciones. Es un excelente momento para la comunicación sincera, lo que traerá armonía a tu vida personal y de pareja.'
+            },
+            libra: { 
+                name: 'Libra', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/libra.png',
+                message: 'El equilibrio es tu superpoder, y ahora se extiende a tu corazón y tu piel. Se abren canales para una conexión sentimental profunda y una intimidad sexual llena de armonía y descubrimiento. La belleza te rodea, atrayendo a alguien que sabrá apreciar tanto tu mente como tu cuerpo.'
+            },
+            scorpio: { 
+                name: 'Escorpio', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/scorpio.png',
+                message: 'Tu intensidad se canaliza hacia la pasión y la transformación personal. Se avecinan encuentros profundos y reveladores que enriquecerán tu vida íntima. Confía en tu instinto.'
+            },
+            sagittarius: { 
+                name: 'Sagitario', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/sagittarius.png',
+                message: 'La aventura te llama, no solo en viajes, sino en el amor. Explora nuevas facetas de tus relaciones y atrévete a experimentar. La suerte está de tu lado en lo personal.'
+            },
+            capricorn: { 
+                name: 'Capricornio', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/capricorn.png',
+                message: 'Tu esfuerzo en el ámbito personal rinde frutos. Se consolidan relaciones importantes, trayendo seguridad y felicidad. Disfruta de la estabilidad que has construido.'
+            },
+            aquarius: { 
+                name: 'Acuario', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/aquarius.png',
+                message: 'Tu originalidad atrae a personas fascinantes. Es un período ideal para expandir tu círculo social y disfrutar de conexiones intelectuales y románticas poco convencionales.'
+            },
+            pisces: { 
+                name: 'Piscis', 
+                iconUrl: 'https://img.icons8.com/plasticine/100/pisces.png',
+                message: 'La creatividad y la empatía fluyen en tus relaciones. Conectarás a un nivel espiritual profundo con alguien especial, llevando tu vida personal a una nueva dimensión de ensueño.'
+            }
+        };
+
+        // --- DOM Elementos ---
+        const signsGrid = document.querySelector('.signs-grid');
+        const signSelectionView = document.getElementById('sign-selection');
+        const horoscopeDisplayView = document.getElementById('horoscope-display');
+        const horoscopeIconContainer = document.getElementById('horoscope-icon-container');
+        const horoscopeSignName = document.getElementById('horoscope-sign-name');
+        const horoscopeMessage = document.getElementById('horoscope-message');
+        const backButton = document.getElementById('back-button');
+
+        // --- Funciones ---
+        function showHoroscope(signKey) {
+            const sign = zodiacSigns[signKey];
+            horoscopeIconContainer.innerHTML = `<img src="${sign.iconUrl}" alt="${sign.name}" class="horoscope-display-icon">`;
+            horoscopeSignName.textContent = sign.name;
+            
+            typeWriter(sign.message, horoscopeMessage);
+            
+            signSelectionView.classList.add('hidden');
+            horoscopeDisplayView.classList.remove('hidden');
+        }
+
+        function showSelection() {
+            horoscopeDisplayView.classList.add('hidden');
+            signSelectionView.classList.remove('hidden');
+        }
+
+        function typeWriter(text, element) {
+            element.innerHTML = '';
+            let i = 0;
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(type, 40); // Velocidad de escritura
+                }
+            }
+            type();
+        }
+
+        function createStar() {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 3;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+            star.style.top = `${Math.random() * 100}%`;
+            star.style.left = `${Math.random() * 100}%`;
+            star.style.animationDelay = `${Math.random() * 5}s`;
+            star.style.animationDuration = `${2 + Math.random() * 3}s`;
+            document.getElementById('starsContainer').appendChild(star);
+        }
+
+        // --- Inicialización ---
+        function init() {
+            // Generar estrellas
+            for (let i = 0; i < 150; i++) { // Aumentado el número de estrellas
+                createStar();
+            }
+
+            // Generar tarjetas de signos
+            for (const key in zodiacSigns) {
+                const sign = zodiacSigns[key];
+                const card = document.createElement('div');
+                card.className = 'sign-card';
+                card.dataset.sign = key;
+                card.innerHTML = `<img src="${sign.iconUrl}" alt="${sign.name}"><span>${sign.name}</span>`;
+                signsGrid.appendChild(card);
+            }
+
+            // Añadir Event Listeners
+            signsGrid.addEventListener('click', (e) => {
+                const card = e.target.closest('.sign-card');
+                if (card) {
+                    showHoroscope(card.dataset.sign);
+                }
+            });
+
+            backButton.addEventListener('click', showSelection);
+        }
+
+        // --- Ejecutar al cargar la página ---
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+
+</body>
+</html>
+
+
